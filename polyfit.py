@@ -1,5 +1,3 @@
-#!/usr/bin/env pypy3
-
 """
 quad precision orthogonal polynomial least squares fit
 
