@@ -1,8 +1,9 @@
 INC  = -I.
 WARN := -Wall -Wextra -Wpedantic
 OPT  := -O3
+FLGS := -fPIC
 
-CFLAGS=$(INC) $(WARN) $(OPT)
+CFLAGS=$(INC) $(WARN) $(OPT) $(FLGS)
 
 all:	libpolyfit.so examples/ex2
 

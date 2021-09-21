@@ -202,8 +202,9 @@ static inline Quad_t one() {
 }
 
 static inline Quad_t to_quad(const double x) {
-    Quad_t q = { x, 0 };
-
+    Quad_t q = { 0, 0 };
+    
+    q.x = x;
     return q;
 }
 
@@ -235,7 +236,10 @@ static inline Quad_t mul(const Quad_t x, const Quad_t y) {
 static inline Quad_t div_(const Quad_t x, const Quad_t y) {
     double c = x.x / y.x;
     Quad_t u = twoproduct(c, y.x);
-    Quad_t z = { c, (x.x - u.x - u.xx + x.xx - c * y.xx) / y.x };
+    Quad_t z;
+    
+    z.x  = c;
+    z.xx = (x.x - u.x - u.xx + x.xx - c * y.xx) / y.x;
 
     return twosum(z.x, z.xx);
 }

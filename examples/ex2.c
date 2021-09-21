@@ -46,8 +46,10 @@ int main(int argc, char *argv[]) {
     gettimeofday(&tv0, NULL);
     polyfit(fit, xv, yv, wv);
     gettimeofday(&tv1, NULL);
-    printf("dt = %lf\n",
-        (tv1.tv_sec - tv0.tv_sec) + 1e-6 * (tv1.tv_usec - tv0.tv_usec)
+    printf("dt = %f\n",
+        (float) (
+            (tv1.tv_sec - tv0.tv_sec) + 1e-6 * (tv1.tv_usec - tv0.tv_usec)
+        )
     );
 
     printf("preds\n");
@@ -56,30 +58,32 @@ int main(int argc, char *argv[]) {
 
         polyfit_val(fit, xv[i], D, d, 0);
         diff = yv[i] - d[0];
-        printf("  %lf %.3le %.3le %.3le\n", xv[i], yv[i], d[0], diff);
+        printf(
+            "  %f %.3e %.3e %.3e\n",
+            (float) xv[i], (float) yv[i], (float) d[0], (float) diff);
     }
 
     printf("derivs x=0\n");
     polyfit_val(fit, xv[0], D, derivs, D);
     for (i = 0; i <= D; i++) {
-        printf("  %d %.3le\n", i, derivs[i]);
+        printf("  %d %.3e\n", i, (float) derivs[i]);
     }
 
     printf("derivs x=1\n");
     polyfit_val(fit, xv[1], D, derivs, D);
     for (i = 0; i <= D; i++) {
-        printf("  %d %.3le\n", i, derivs[i]);
+        printf("  %d %.3e\n", i, (float) derivs[i]);
     }
 
     polyfit_cofs(fit, D, 0, cofs);
     printf("cofs\n");
     for (i = 0; i <= D; i++) {
-        printf("  %d %.3le\n", i, cofs[i]);
+        printf("  %d %.3e\n", i, (float) cofs[i]);
     }
 
     printf("errs\n");
     for (i = 0; i <= D; i++) {
-        printf("  %d %.3le\n", i, polyfit_err(fit, i));
+        printf("  %d %.3e\n", i, (float) polyfit_err(fit, i));
     }
 
     for (i = 0; i < N; i++) {
@@ -90,7 +94,7 @@ int main(int argc, char *argv[]) {
         if (err > maxrel)
             maxrel = err;
     }
-    printf("maxrel %.3le\n", maxrel);
+    printf("maxrel %.3e\n", (float) maxrel);
 
     polyfit_free(fit);
     return 0;
