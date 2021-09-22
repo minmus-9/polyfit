@@ -14,6 +14,12 @@
 
 #include "polyfit.h"
 
+#ifdef __STRICT_ANSI__
+#define INLINE
+#else
+#define INLINE inline
+#endif
+
 #define MIN(x,y) (((x) < (y)) ? (x) : (y))
 #define MAX(x,y) (((x) > (y)) ? (x) : (y))
 
@@ -70,7 +76,7 @@ typedef struct fit {
 /* }}} */
 /* {{{  quad-precision functions from ogita and dekker */
 /**********************************************************************/
-static inline Quad_t twosum(const double a, const double b) {
+static INLINE Quad_t twosum(const double a, const double b) {
     double x, y, z;
     Quad_t q;
 
@@ -83,7 +89,7 @@ static inline Quad_t twosum(const double a, const double b) {
     return q;
 }
 
-static inline Quad_t twodiff(const double a, const double b) {
+static INLINE Quad_t twodiff(const double a, const double b) {
     double x, y, z;
     Quad_t q;
 
@@ -98,7 +104,7 @@ static inline Quad_t twodiff(const double a, const double b) {
 
 #define FACTOR ((double) (1 + (1 << 27)))
 
-static inline Quad_t split(const double a) {
+static INLINE Quad_t split(const double a) {
     double c, x, y;
     Quad_t q;
 
@@ -111,7 +117,7 @@ static inline Quad_t split(const double a) {
     return q;
 }
 
-static inline Quad_t twoproduct(const double a, const double b) {
+static INLINE Quad_t twoproduct(const double a, const double b) {
     double x, y;
     Quad_t aa, bb;
 
@@ -123,7 +129,7 @@ static inline Quad_t twoproduct(const double a, const double b) {
     return twosum(x, y);
 }
 
-static inline Quad_t sum2s(const double * const p, const int np) {
+static INLINE Quad_t sum2s(const double * const p, const int np) {
     double sigma;
     Quad_t q;
     int    i;
@@ -143,7 +149,7 @@ static inline Quad_t sum2s(const double * const p, const int np) {
     return twosum(q.x, sigma);
 }
 
-static inline void vsum(double * const p, const int np) {
+static INLINE void vsum(double * const p, const int np) {
     Quad_t q;
     int    i, im1 = 0;
 
@@ -155,7 +161,7 @@ static inline void vsum(double * const p, const int np) {
     }
 }
 
-static inline void sumkcore(
+static INLINE void sumkcore(
     double * const p, const int np, const int K
 ) {
     int i;
@@ -165,20 +171,20 @@ static inline void sumkcore(
     }
 }
 
-static inline Quad_t sumk(
+static INLINE Quad_t sumk(
     double * const p, const int np, const int K
 ) {
     sumkcore(p, np, K);
     return sum2s(p, np);
 }
 
-static inline Quad_t vectorsum(double * const p, const int np) {
+static INLINE Quad_t vectorsum(double * const p, const int np) {
     return sumk(p, np, 3);
 }
 /* }}} */
 /* {{{ utility functions */
 /**********************************************************************/
-static inline void vappend(
+static INLINE void vappend(
     double * const vec, int * const vecptr,
     const Quad_t src
 ) {
@@ -189,51 +195,51 @@ static inline void vappend(
     *vecptr  = v;
 }
 
-static inline Quad_t zero() {
+static INLINE Quad_t zero() {
     Quad_t q = { 0, 0 };
 
     return q;
 }
 
-static inline Quad_t one() {
+static INLINE Quad_t one() {
     Quad_t q = { 1, 0 };
 
     return q;
 }
 
-static inline Quad_t to_quad(const double x) {
+static INLINE Quad_t to_quad(const double x) {
     Quad_t q = { 0, 0 };
     
     q.x = x;
     return q;
 }
 
-static inline double to_double(const Quad_t q) {
+static INLINE double to_double(const Quad_t q) {
     return q.x;
 }
 /* }}} */
 /* {{{ quad-precision arithmetic */
 /**********************************************************************/
-static inline Quad_t add(const Quad_t x, const Quad_t y) {
+static INLINE Quad_t add(const Quad_t x, const Quad_t y) {
     Quad_t z = twosum(x.x, y.x);
 
     return twosum(z.x, z.xx + x.xx + y.xx);
 }
 
-static inline Quad_t sub(const Quad_t x, const Quad_t y) {
+static INLINE Quad_t sub(const Quad_t x, const Quad_t y) {
     Quad_t z = twodiff(x.x, y.x);
 
     return twosum(z.x, z.xx + x.xx - y.xx);
 }
 
-static inline Quad_t mul(const Quad_t x, const Quad_t y) {
+static INLINE Quad_t mul(const Quad_t x, const Quad_t y) {
     Quad_t z = twoproduct(x.x, y.x);
 
     z.xx += x.xx * y.x + x.x * y.xx;
     return twosum(z.x, z.xx);
 }
 
-static inline Quad_t div_(const Quad_t x, const Quad_t y) {
+static INLINE Quad_t div_(const Quad_t x, const Quad_t y) {
     double c = x.x / y.x;
     Quad_t u = twoproduct(c, y.x);
     Quad_t z;
@@ -244,7 +250,7 @@ static inline Quad_t div_(const Quad_t x, const Quad_t y) {
     return twosum(z.x, z.xx);
 }
 
-static inline Quad_t sqrt_(const Quad_t x) {
+static INLINE Quad_t sqrt_(const Quad_t x) {
     double c, cc;
     Quad_t u;
 

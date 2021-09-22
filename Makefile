@@ -1,7 +1,7 @@
 INC  = -I.
 WARN := -Wall -Wextra -Wpedantic
 OPT  := -O3
-FLGS := -fPIC
+FLGS := -fPIC -ansi
 
 CFLAGS=$(INC) $(WARN) $(OPT) $(FLGS)
 
