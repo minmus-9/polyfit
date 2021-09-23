@@ -16,10 +16,10 @@ def demo():
     "demo of the api"
     ## pylint: disable=unnecessary-comprehension
 
-    ## poly coefficients to fit
+    ## poly coefficients to fit, highest degree first
     cv = [2, 1, -1, math.pi]
 
-    ## evaluate using horner's method
+    ## evaluate the polynomia above using horner's method
     def pv(x):
         "evaluate using cv"
         r = 0.
@@ -34,10 +34,10 @@ def demo():
     yv = [pv(x) for x in xv]
 
     ## weights:
-    ##     uniform, minimize max residual
+    ##     uniform to minimize the max residual
     wv = [1. for _ in xv]
 
-    ##     relative, minimize relative residual
+    ##     relative to minimize the relative residual
     ##     note that y is nonzero for this example
     #wv = [y ** -2. for y in yv]
 
@@ -48,7 +48,7 @@ def demo():
     #from pprint import pprint
     #pprint(fit._fit)
 
-    ## print fit stats
+    ## print the fit stats
     deg = fit.maxdeg()
     print("maxdeg", deg)
     print("points", fit.npoints())
@@ -59,7 +59,7 @@ def demo():
     ## print relative resid error across all x
     print("relerr", fit.rel_err())
 
-    ## print some values
+    ## print a few values
     for i in range(4):
         print("value  %.1f %s" % (xv[i], fit(i, nderiv=-1)))
 
