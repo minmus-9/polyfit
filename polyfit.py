@@ -162,7 +162,7 @@ def polyfit(xv, yv, wv, D):
     assert len(xv) == len(yv) == len(wv)
     assert min(wv) > 0
     xv = [to_quad(x) for x in xv]
-    yv = [to_quad(y) for y in yv]
+    rv = [to_quad(y) for y in yv]
     wv = [to_quad(w) for w in wv]
     N  = len(xv)
     a  = [ ]        ## a_k fit coefficients
@@ -191,8 +191,8 @@ def polyfit(xv, yv, wv, D):
         for i in range(N):
             s = mul(wv[i], phi_k[i])
             t = mul(s, phi_k[i])
-            ## a_k += wv[i] * yv[i] * phi_k[i]
-            vappend(avec, mul(s, yv[i]))
+            ## a_k += wv[i] * rv[i] * phi_k[i]
+            vappend(avec, mul(s, rv[i]))
             ## b_k += wv[i] * xv[i] * phi_k[i] * phi_k[i]
             vappend(bvec, mul(t, xv[i]))
             ## g_k += wv[i] * phi_k[i] * phi_k[i]
@@ -208,15 +208,15 @@ def polyfit(xv, yv, wv, D):
         g.append(g_k)
 
         ## subtract projection a_k \phi_k from yv, leaving the
-        ## residuals in yv. dpolft does this and it does actually
+        ## residuals in rv. dpolft does this and it does actually
         ## help. plus it enables the rms calculation below.
         for i in range(N):
-            ## yv[i] -= a_k * phi_k[i]
-            yv[i] = sub(yv[i], mul(a_k, phi_k[i]))
+            ## rv[i] -= a_k * phi_k[i]
+            rv[i] = sub(rv[i], mul(a_k, phi_k[i]))
 
         ## compute the (unweighted) rms error in the fit
         evec = [ ]
-        for i, r in enumerate(yv):
+        for i, r in enumerate(rv):
             ## err += res[i] * res[i]
             vappend(evec, mul(r, r))
         erms = quad_to_float(
@@ -252,10 +252,10 @@ def polyfit_val(fit, x, deg=-1, nderiv=0, extended=False):
     """
     x = to_quad(x)
     a, b, c = fit["a"], fit["b"], fit["c"]
-    if nderiv < 0:
-        nderiv = len(a) - 1
     if deg < 0:
         deg = len(a) - 1
+    if nderiv < 0:
+        nderiv = deg
 
     ret  = [ ]
     ## init z^{(j-1)} and z^{(j)}
@@ -295,6 +295,7 @@ def polyfit_cofs(fit, deg=-1, x0=0., extended=False):
     for i in range(1, len(derivs)):
         fac = div(fac, to_quad(i))
         derivs[i] = mul(derivs[i], fac)
+    derivs.reverse()
     return \
         derivs if extended else [quad_to_float(d) for d in derivs]
 ## }}}

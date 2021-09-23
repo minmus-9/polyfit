@@ -29,12 +29,13 @@ def demo():
         return r
 
     ## define the x and y values for the fit
-    xv = [x for x in range(10000)]
+    N  = 10000
+    xv = [x for x in range(N)]
     yv = [pv(x) for x in xv]
 
     ## weights:
     ##     uniform, minimize max residual
-    #wv = [1. for _ in xv]
+    wv = [1. for _ in xv]
 
     ##     relative, minimize relative residual
     ##     note that y is nonzero for this example
@@ -62,6 +63,8 @@ def demo():
     print("coefs0", fit.coefs(deg, x0=0.))
     ## value and all derivs at 0.
     print("value0", fit(xv[0], deg, deg))
+    ## coefs halfway through
+    print("coefs ", fit.coefs(deg, xv[N >> 1]))
 
 if __name__ == "__main__":
     demo()

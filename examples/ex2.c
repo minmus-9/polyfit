@@ -13,7 +13,7 @@
 #define USE_ACOS
 #endif
 
-#define N 100000
+#define N 10000
 #define D 3
 double xv[N], yv[N], wv[N];
 
@@ -37,8 +37,9 @@ void init() {
         /* define xv[], yv[], and wv[] for the fit */
         xv[i] = i;
         yv[i] = y;
+        /* wv[i] = 1; */
         /* minimize relative residual */
-        wv[i] = 1 / (y * y);    /* NB y != 0 for this example poly */
+        wv[i] = 1. / (y * y);    /* NB y != 0 for this example poly */
     }
 }
 
@@ -75,7 +76,7 @@ int main(int argc, char *argv[]) {
     /* print per-degree rms errors */
     printf("erms  ");
     for (i = 0; i <= D; i++) {
-        printf(" %.3e", polyfit_err(fit, i));
+        printf(" %.18e", polyfit_err(fit, i));
     }
     printf("\n");
 
@@ -88,14 +89,14 @@ int main(int argc, char *argv[]) {
         if (err > maxrel)
             maxrel = err;
     }
-    printf("relerr %.3e\n", (float) maxrel);
+    printf("relerr %.18e\n", (float) maxrel);
 
     /* print some values */
     for (i = 0; i < 5; i++) {
         polyfit_val(fit, xv[i], D, d, D);
         printf("value  %f", (float) xv[i]);
         for (j = 0; j <= D; j++) {
-            printf(" %.3e", (float) d[j]);
+            printf(" %.18e", (float) d[j]);
         }
         printf("\n");
     }
@@ -104,7 +105,7 @@ int main(int argc, char *argv[]) {
     polyfit_cofs(fit, D, xv[0], cofs);
     printf("coefs0");
     for (i = 0; i <= D; i++) {
-        printf(" %.3e", (float) cofs[i]);
+        printf(" %.18e", (float) cofs[i]);
     }
     printf("\n");
 
@@ -112,10 +113,18 @@ int main(int argc, char *argv[]) {
     printf("value0");
     polyfit_val(fit, xv[0], D, d, D);
     for (j = 0; j <= D; j++) {
-        printf(" %.3e", (float) d[j]);
+        printf(" %.18e", (float) d[j]);
     }
     printf("\n");
     
+    /* coefs halfway through */
+    polyfit_cofs(fit, D, xv[N>>1], cofs);
+    printf("coefs ");
+    for (i = 0; i <= D; i++) {
+        printf(" %.18e", (float) cofs[i]);
+    }
+    printf("\n");
+
     /* free the workspace */
     polyfit_free(fit);
     return 0;
