@@ -9,8 +9,8 @@ import sys
 
 sys.path.insert(0, "..")
 
-from polyfit import Polyfit ## pylint: disable=wrong-import-position
-#from cpolyfit import Polyfit ## pylint: disable=wrong-import-position
+from polyfit import PolyfitPlan     ## pylint: disable=wrong-import-position
+#from cpolyfit import PolyfitPlan    ## pylint: disable=wrong-import-position
 
 def demo():
     "demo of the api"
@@ -42,33 +42,27 @@ def demo():
     #wv = [y ** -2. for y in yv]
 
     ## perform the fit
-    fit = Polyfit(len(cv) - 1, xv, yv, wv)
-
-    ## print the guts of the fit
-    #from pprint import pprint
-    #pprint(fit._fit)
+    plan = PolyfitPlan(len(cv) - 1, xv, wv)
+    fit  = plan.fit(yv)
 
     ## print the fit stats
     deg = fit.maxdeg()
     print("maxdeg", deg)
     print("points", fit.npoints())
-    print("time  ", fit.runtime())
 
     ## print per-degree rms errors
-    print("erms  ", [fit.rms_err(d) for d in range(deg + 1)])
-    ## print relative resid error across all x
-    print("relerr", fit.rel_err())
+    print("erms  ", [fit.rms_errors()[d] for d in range(deg + 1)])
 
     ## print a few values
     for i in range(4):
-        print("value  %.1f %s" % (xv[i], fit(i, nderiv=-1)))
+        print("value  %.1f %s" % (xv[i], fit(i, nder=-1)))
 
     ## coefs about x0=0.
-    print("coefs0", fit.coefs(deg, x0=0.))
+    print("coefs0", fit.coefs(0., deg))
     ## value and all derivs at 0.
     print("value0", fit(xv[0], deg, deg))
     ## coefs halfway through
-    print("coefs ", fit.coefs(deg, xv[N >> 1]))
+    print("coefs ", fit.coefs(xv[N >> 1], deg))
 
 if __name__ == "__main__":
     demo()

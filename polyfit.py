@@ -11,6 +11,12 @@ from __future__ import print_function
 
 import math
 
+__all__ = [
+    "PolyfitPlan",
+    "polyfit_plan", "polyfit_fit", "polyfit_eval", "polyfit_coefs",
+    "polyfit_maxdeg", "polyfit_npoints"
+]
+
 ## {{{ quad precision routines from ogita et al
 def twosum(a, b):
     "6 flops, algorithm 3.1 from ogita"
@@ -383,6 +389,14 @@ class PolyfitFit(object):
         instead.
         """
         return self.cofs(x0, deg)
+
+    def maxdeg(self):
+        "return the maximumfit degree"
+        return polyfit_maxdeg(self.plan)
+
+    def npoints(self):
+        "return the number of fit points"
+        return polyfit_npoints(self.plan)
 
     def rms_errors(self):
         """
