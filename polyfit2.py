@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-"oplsq"
+"quad precision orthogonal polynomial least squares fitting"
 
 from __future__ import print_function
 
@@ -135,6 +135,17 @@ def sqrt(x):
 ## }}}
 ## {{{ polyfit_plan
 def polyfit_plan(maxdeg, xv, wv):
+    """
+    given x values in xv[] and positive weights in wv[],
+    make a plan to perform least squares fitting up to
+    degree maxdeg.
+
+    returns a plan object than can be json-(de)serialized.
+
+    this is code for "compute everything need to calculate
+    an expansion in xv- and wv-specific orthogonal
+    polynomials".
+    """
     ## pylint: disable=too-many-locals
 
     ## convert to quad
@@ -192,6 +203,17 @@ def polyfit_plan(maxdeg, xv, wv):
 ## }}}
 ## {{{ polyfit_fit
 def polyfit_fit(plan, yv):
+    """
+    given a previously generated plan and a set of y values
+    in yv[], compute all least squares fits to yv[] up to
+    degree maxdeg.
+
+    returns (rms_errors, evaluator, coef_evaluator) where
+    rms_errors is a vector of rms fit errors for each possible
+    degree, evaluator is a function to evaluate the fit
+    polynomial, and coef_evaluator is a function to generate
+    polynomial coefficients for the standard x_k basis.
+    """
     ## pylint: disable=too-many-locals
     N, D = plan["N"], plan["D"]
     b, c = plan["b"], plan["c"]
@@ -244,6 +266,22 @@ def polyfit_fit(plan, yv):
 ## }}}
 ## {{{ polyfit_eval
 def polyfit_eval_(plan, a, x, deg=-1, nder=-1):
+    """
+    given a plan, a set of expansion coefficients generated
+    by polyfit_fit, a point x, a least squares fit degree
+    deg, and a desired number of derivatives to compute
+    nder, calculate and return the value of the polynomial
+    and any requested derivatives.
+
+    if deg is negative, use maxdeg instead. if nder is
+    negative, use the final value of deg; otherwise, compute
+    ndeg derivatives of the least squares polynomial of
+    degree deg.
+
+    returns a list whose first element is the value of the
+    least squares polynomial of degree deg at x. subsequent
+    elements are the requested derivatives.
+    """
     ## pylint: disable=too-many-locals
     b, c, D = plan["b"], plan["c"], plan["D"]
 
@@ -295,6 +333,13 @@ def polyfit_eval(plan, a, x, deg=-1, nder=-1):
 ## }}}
 ## {{{ polyfit_coefs
 def polyfit_coefs(plan, a, x0=0., deg=-1):
+    """
+    given a plan, a set of expansion coefficients generated
+    by polyfit_fit, a center point x0, and a least squares
+    fit degree, return the coefficients of powers of (x - x0)
+    with the highest powers first. if deg is negative (the
+    default), use maxdeg instead.
+    """
     ## get value and derivs, divide by j!
     vals = polyfit_eval_(plan, a, x0, deg, deg)
     fac  = one()
@@ -305,9 +350,26 @@ def polyfit_coefs(plan, a, x0=0., deg=-1):
     vals.reverse()
     return [to_float(v) for v in vals]
 ## }}}
+## {{{ polyfit_maxdeg and polyfit_npoints
+def polyfit_maxdeg(plan):
+    "return the maximum possible fit degree"
+    return plan["D"]
+
+def polyfit_npoints(plan):
+    "return the number of data points being fit"
+    return plan["N"]
+## }}}
 ## {{{ Polyfit classes
 class PolyfitFit(object):
+    """
+    polynomial fitter returned by PolyfitPlan.fit()
+    """
+
     def __init__(self, plan, yv):
+        """
+        given a plan and a set of y values yv[], call polyfit_plan
+        to compute the least squares fits up to degree maxdeg.
+        """
         self.plan = plan
         self.rms, self.eval, self.cofs = polyfit_fit(plan, yv)
 
@@ -315,12 +377,23 @@ class PolyfitFit(object):
         return self.eval(x, deg, nder)
 
     def coefs(self, x0, deg=-1):
+        """
+        return the coefficients of the fit polynomial of degree
+        deg about (x - x0). if deg is negative, use maxdeg
+        instead.
+        """
         return self.cofs(x0, deg)
 
     def rms_errors(self):
+        """
+        return a list of rms errors, one per fit degree. use them to
+        detect overfitting.
+        """
         return self.rms
 
 class PolyfitPlan(object):
+    ## pylint: disable=too-few-public-methods
+
     def __init__(self, maxdeg, xv, wv):
         self.plan = polyfit_plan(maxdeg, xv, wv)
 
@@ -352,7 +425,7 @@ def demo():
     print("cof0", fit.coefs(0))
     print("cofs", fit.coefs(xv[N >> 1]))
     print("rms ", fit.rms_errors())
-    rms, erel, eres = 0., -1., -1.
+    erel, eres = -1., -1.
     for i, x in enumerate(xv):
         exp  = yv[i]
         obs  = to_float(fit(x, nder=0))
