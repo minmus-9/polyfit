@@ -259,7 +259,7 @@ def polyfit_val(fit, x, deg=-1, nderiv=0, extended=False):
 
     ret  = [ ]
     ## init z^{(j-1)} and z^{(j)}
-    zjm1 = a[:deg+2] + [zero(), zero()]
+    zjm1 = a[:deg+1] + [zero(), zero()]
     zj   = [zero()]  * (deg + 3)
     fac  = one()
     for j in range(min(deg, nderiv) + 1):
@@ -278,8 +278,8 @@ def polyfit_val(fit, x, deg=-1, nderiv=0, extended=False):
         val = mul(fac, zj[j])
         ret.append(val if extended else quad_to_float(val))
         ## update z vectors
-        zjm1 = zj
-        zj   = [zero()] * (deg + 3)
+        zjm1    = zj
+        zj[-2:] = [zero(), zero()]
     if nderiv > deg:
         ret.extend([zero() if extended else 0.] * (nderiv - deg))
     return ret
@@ -372,13 +372,16 @@ class Polyfit(object):
         if degree is None:
             degree = self.maxdeg()
         err = -1.
-        for x, exp in zip(self.xv, self.yv):
+        at  = -1
+        for i, x in enumerate(self.xv):
+            exp = self.yv[i]
             obs = self(x, degree=degree)
             if exp:
                 rel = abs(obs / exp - 1.)
                 if rel > err:
                     err = rel
-        return err
+                    at  = i
+        return err, at
 
     def rms_err(self, degree=None):
         """

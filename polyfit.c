@@ -47,7 +47,7 @@ typedef struct work {
 #define x_vec work1_qn
     Quad_t *work1_qn;   /* npoints */
 
-#define y_vec work2_qn
+#define r_vec work2_qn
     Quad_t *work2_qn;   /* npoints */
 
 #define w_vec work3_qn
@@ -185,7 +185,8 @@ static INLINE Quad_t vectorsum(double * const p, const int np) {
 /* {{{ utility functions */
 /**********************************************************************/
 static INLINE void vappend(
-    double * const vec, int * const vecptr,
+    double * const vec,
+    int * const vecptr,
     const Quad_t src
 ) {
     int v = *vecptr;
@@ -241,13 +242,12 @@ static INLINE Quad_t mul(const Quad_t x, const Quad_t y) {
 
 static INLINE Quad_t div_(const Quad_t x, const Quad_t y) {
     double c = x.x / y.x;
+    double cc;
     Quad_t u = twoproduct(c, y.x);
-    Quad_t z;
     
-    z.x  = c;
-    z.xx = (x.x - u.x - u.xx + x.xx - c * y.xx) / y.x;
+    cc = (x.x - u.x - u.xx + x.xx - c * y.xx) / y.x;
 
-    return twosum(z.x, z.xx);
+    return twosum(c, cc);
 }
 
 static INLINE Quad_t sqrt_(const Quad_t x) {
@@ -365,20 +365,20 @@ void polyfit(
 
     for (i = 0; i < N; i++) {
         w->x_vec[i]   = to_quad(xv[i]);
-        w->y_vec[i]   = to_quad(yv[i]);
+        w->r_vec[i]   = to_quad(yv[i]);
         w->w_vec[i]   = to_quad(wv[i]);
         w->phi_k[i]   = one();
         w->phi_km1[i] = zero();
     }
     w->g[0] = one();
-    f->c[f->maxdeg + 1] = zero();
+    f->c[D + 1] = zero();
     for (k = 0; k <= D; k++) {
         w->a_vec_ptr = w->b_vec_ptr = w->g_vec_ptr = 0;
         for (i = 0; i < N; i++) {
             Quad_t s = mul(w->w_vec[i], w->phi_k[i]);
             Quad_t t = mul(s, w->phi_k[i]);
 
-            vappend(w->a_vec, &w->a_vec_ptr, mul(s, w->y_vec[i]));
+            vappend(w->a_vec, &w->a_vec_ptr, mul(s, w->r_vec[i]));
             vappend(w->b_vec, &w->b_vec_ptr, mul(t, w->x_vec[i]));
             vappend(w->g_vec, &w->g_vec_ptr, t);
         }
@@ -393,13 +393,13 @@ void polyfit(
         w->g[k+1] = g_k;
 
         for (i = 0; i < N; i++) {
-            w->y_vec[i] = sub(w->y_vec[i], mul(a_k, w->phi_k[i]));
+            w->r_vec[i] = sub(w->r_vec[i], mul(a_k, w->phi_k[i]));
         }
 
         w->e_vec_ptr = 0;
         for (i = 0; i < N; i++) {
             vappend(
-                w->e_vec, &w->e_vec_ptr, mul(w->y_vec[i], w->y_vec[i])
+                w->e_vec, &w->e_vec_ptr, mul(w->r_vec[i], w->r_vec[i])
             );
         }
         f->e[k] = to_double(
@@ -436,22 +436,22 @@ void polyfit_val(
     Quad_t  x = to_quad(x_), fac = one(), val;
     int     i, j, k, maxdeg = f->maxdeg, deriv_ptr = 0;
 
-    if (nderiv < 0)
-        nderiv = maxdeg;
     if (degree < 0)
         degree = maxdeg;
+    if (nderiv < 0)
+        nderiv = degree;
 
     for (i = 0; i <= degree; i++) {
         w->z_jm1[i] = f->a[i];
-        w->z_j[i]   = zero();
     }
-    for (i = 1; i < 3; i++) {
-        w->z_jm1[degree + i] = w->z_j[degree + i] = zero();
+    for (i = 1; i <= 2; i++) {
+        w->z_j[degree + i] = zero();
     }
 
     for (j = 0; j <= MIN(degree, nderiv); j++) {
-        if (j > 1)
+        if (j > 1) {
             fac = mul(fac, to_quad(j));
+        }
         for (k = degree; k >= j; k--) {
             int    t = k - j;
             Quad_t tmp = sub(
@@ -465,9 +465,11 @@ void polyfit_val(
         val = mul(fac, w->z_j[j]);
         derivatives[deriv_ptr++] = to_double(val);
 
-        for (i = 0; i < degree + 3; i++) {
+        for (i = 0; i <= degree + 2; i++) {
             w->z_jm1[i] = w->z_j[i];
-            w->z_j[i]   = zero();
+        }
+        for (i = 1; i <= 2; i++) {
+            w->z_j[degree + i] = zero();
         }
     }
 
@@ -527,6 +529,31 @@ int polyfit_maxdeg(
     const fit_t * const f = fit;
 
     return f->maxdeg;
+}
+/* }}} */
+/* {{{ polyfit_dump */
+void polyfit_dump(
+    const void * const fit
+) {
+    const fit_t *f = fit;
+    int i, d = f->maxdeg;
+
+    printf("a\n");
+    for (i = 0; i <= d; i++) {
+        printf("%2d %.18e %.18e\n", i, f->a[i].x, f->a[i].xx);
+    }
+    printf("b\n");
+    for (i = 0; i <= d; i++) {
+        printf("%2d %.18e %.18e\n", i, f->b[i].x, f->b[i].xx);
+    }
+    printf("c\n");
+    for (i = 0; i <= d; i++) {
+        printf("%2d %.18e %.18e\n", i, f->c[i].x, f->c[i].xx);
+    }
+    printf("e\n");
+    for (i = 0; i <= d; i++) {
+        printf("%2d %.18e\n", i, f->e[i]);
+    }
 }
 /* }}} */
 

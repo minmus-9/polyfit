@@ -1,4 +1,4 @@
-INC  = -I.
+INC  := -I.
 WARN := -Wall -Wextra -Wpedantic
 OPT  := -O3
 FLGS := -fPIC

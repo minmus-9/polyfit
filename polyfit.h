@@ -52,6 +52,10 @@ extern int polyfit_maxdeg(
     const void * const fit
 );
 
+extern void polyfit_dump(
+    const void * const fit
+);
+
 #ifdef __cplusplus
 };
 #endif

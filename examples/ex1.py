@@ -39,10 +39,14 @@ def demo():
 
     ##     relative, minimize relative residual
     ##     note that y is nonzero for this example
-    wv = [y ** -2. for y in yv]
+    #wv = [y ** -2. for y in yv]
 
     ## perform the fit
     fit = Polyfit(len(cv) - 1, xv, yv, wv)
+
+    ## print the guts of the fit
+    #from pprint import pprint
+    #pprint(fit._fit)
 
     ## print fit stats
     deg = fit.maxdeg()
@@ -56,7 +60,7 @@ def demo():
     print("relerr", fit.rel_err())
 
     ## print some values
-    for i in range(5):
+    for i in range(4):
         print("value  %.1f %s" % (xv[i], fit(i, nderiv=-1)))
 
     ## coefs about x0=0.
