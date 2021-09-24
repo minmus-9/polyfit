@@ -9,8 +9,8 @@ import sys
 
 sys.path.insert(0, "..")
 
-from polyfit import PolyfitPlan     ## pylint: disable=wrong-import-position
-#from cpolyfit import PolyfitPlan    ## pylint: disable=wrong-import-position
+from polyfit import PolyfitPlan \
+    ## pylint: disable=wrong-import-position
 
 def demo():
     "demo of the api"
@@ -18,8 +18,9 @@ def demo():
 
     ## poly coefficients to fit, highest degree first
     cv = [2, 1, -1, math.pi]
+    #cv = [1, -2, 1]
 
-    ## evaluate the polynomia above using horner's method
+    ## evaluate the polynomial above using horner's method
     def pv(x):
         "evaluate using cv"
         r = 0.
@@ -42,25 +43,30 @@ def demo():
     #wv = [y ** -2. for y in yv]
 
     ## perform the fit
-    plan = PolyfitPlan(len(cv) - 1, xv, wv)
+    D    = len(cv) - 1
+    plan = PolyfitPlan(D, xv, wv)
     fit  = plan.fit(yv)
 
     ## print the fit stats
-    deg = fit.maxdeg()
+    deg = plan.maxdeg()
     print("maxdeg", deg)
-    print("points", fit.npoints())
+    print("points", plan.npoints())
 
     ## print per-degree rms errors
     print("erms  ", [fit.rms_errors()[d] for d in range(deg + 1)])
 
     ## print a few values
     for i in range(4):
-        print("value  %.1f %s" % (xv[i], fit(i, nder=-1)))
+        print("value  %.1f %s" % (xv[i], fit(xv[i], nder=-1)))
 
-    ## coefs about x0=0.
-    print("coefs0", fit.coefs(0., deg))
-    ## value and all derivs at 0.
-    print("value0", fit(xv[0], deg, deg))
+    ## print value and all derivatives for all degrees
+    for i in range(D + 1):
+        print("deg    %d %s" % (i, fit(xv[0], deg=i, nder=-1)))
+
+    ## print coefficients for all degrees about (x - xv[0])
+    for i in range(D + 1):
+        print("coefs  %d %s" % (i, fit.coefs(xv[0], i)))
+
     ## coefs halfway through
     print("coefs ", fit.coefs(xv[N >> 1], deg))
 
