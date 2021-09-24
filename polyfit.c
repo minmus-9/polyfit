@@ -10,6 +10,7 @@
 #include <errno.h>
 #include <math.h>
 #include <stdio.h>
+#include <stdint.h>
 #include <stdlib.h>
 
 #include "polyfit.h"
@@ -28,51 +29,54 @@ typedef struct Quad {
     double x, xx;
 } Quad_t;
 
-typedef struct work {
-    int a_vec_ptr, b_vec_ptr, g_vec_ptr, e_vec_ptr;
+#define PLAN_MAGIC 0x504c414e   /* "PLAN" */
 
-#define a_vec work1_d2n
-#define cof_vec work1_d2n
-    double *work1_d2n;  /* npoints * 2 */
+typedef struct plan {
+    uint32_t magic;     /* PLAN_MAGIC */
+    int      D;         /* max fit degree */
+    int      N;         /* data point count */
+    Quad_t  *b;         /* maxdeg + 1 */
+    Quad_t  *c;         /* maxdeg + 2 */
+    Quad_t  *g;         /* maxdeg + 2 */
+    Quad_t  *xv;        /* npoints */
+    Quad_t  *wv;        /* npoints */
+} plan_t;
 
-#define b_vec work2_d2n
-    double *work2_d2n;  /* npoints * 2 */
+typedef struct plan_scratch {
+    Quad_t *phi_k;      /* npoints */
+    Quad_t *phi_km1;    /* npoints */
+    Quad_t *b_vec;      /* npoints */
+    Quad_t *g_vec;      /* npoints */
+} plan_scratch_t;
 
-#define g_vec work3_d2n
-    double *work3_d2n;  /* npoints * 2 */
-
-#define e_vec work4_d2n
-    double *work4_d2n;  /* npoints * 2 */
-
-#define x_vec work1_qn
-    Quad_t *work1_qn;   /* npoints */
-
-#define r_vec work2_qn
-    Quad_t *work2_qn;   /* npoints */
-
-#define w_vec work3_qn
-    Quad_t *work3_qn;   /* npoints */
-
-#define phi_k work4_qn
-#define z_j   work4_qn
-    Quad_t *work4_qn;   /* npoints */
-
-#define phi_km1 work5_qn
-#define z_jm1   work5_qn
-    Quad_t *work5_qn;   /* npoints */
-
-#define g work1_qdp2    /* maxdeg + 2 */
-    Quad_t *work1_qdp2;
-} work_t;
+#define FIT_MAGIC 0x46495421    /* "FIT!" */
 
 typedef struct fit {
-    int     npoints, maxdeg;
-    work_t *w;
-    Quad_t *a;  /* maxdeg + 1 */
-    Quad_t *b;  /* maxdeg + 1 */
-    Quad_t *c;  /* maxdeg + 2 */
-    double *e;  /* maxdeg + 1 */
+    uint32_t magic;     /* FIT_MAGIC */
+    plan_t  *plan;
+    Quad_t  *a;         /* maxdeg + 1 */
+    Quad_t  *rv;        /* npoints */
+    double  *rms_errs;  /* maxdeg + 1 */
+    double  *resids;    /* npoints */
 } fit_t;
+
+typedef struct fit_scratch {
+    /* scratch */
+    Quad_t  *phi_k;     /* npoints */
+    Quad_t  *phi_km1;   /* npoints */
+#define e_vec a_vec
+    Quad_t  *a_vec;     /* npoints */
+} fit_scratch_t;
+
+#define EVAL_MAGIC 0x4556414c   /* "EVAL" */
+
+typedef struct eval {
+    uint32_t magic;     /* EVAL_MAGIC */
+    fit_t   *fit;
+    /* scratch */
+    Quad_t  *zj;        /* maxdeg + 3 */
+    Quad_t  *zjm1;      /* maxdeg + 3 */
+} eval_t;
 /* }}} */
 /* {{{  quad-precision functions from ogita and dekker */
 /**********************************************************************/
