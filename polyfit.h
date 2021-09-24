@@ -9,22 +9,23 @@
 extern "C" {
 #endif
 
-extern void *polyfit_alloc(
-    const int npoints, const int maxdeg
-);
-
 extern void polyfit_free(
-    void *fit
+    void *plan_or_fit
 );
 
-extern void polyfit(
-    void * const fit,
+extern void *polyfit_plan(
+    const int maxdeg,
     const double * const xv,
-    const double * const yv,
-    const double * const wv
+    const double * const wv,
+    int npoints
 );
 
-extern void polyfit_val(
+extern void *polyfit_fit(
+    const void * const plan,
+    const double * const yv,
+);
+
+extern void polyfit_eval(
     const void * const fit,
     const double x,
     int degree,
@@ -32,28 +33,27 @@ extern void polyfit_val(
     int nderiv
 );
 
-extern void polyfit_cofs(
+extern void polyfit_coefs(
     const void * const fit,
-    const int degree,
     const double x0,
-    double * const cofs
-);
-
-extern double polyfit_err(
-    const void * const fit,
-    const int degree
-);
-
-extern int polyfit_npoints(
-    const void * const fit
+    const int degree,
+    double * const coefs
 );
 
 extern int polyfit_maxdeg(
     const void * const fit
 );
 
-extern void polyfit_dump(
+extern int polyfit_npoints(
     const void * const fit
+);
+
+extern const double *polyfit_resids(
+    const void * const fit
+);
+
+extern const double *polyfit_rms_errs(
+    const void * const fit,
 );
 
 #ifdef __cplusplus

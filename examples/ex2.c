@@ -1,4 +1,4 @@
-/***********************************************************************
+/***************************************************************
  * ex2.c - polyfit demo
  */
 
@@ -17,7 +17,7 @@
 #define D 3
 double xv[N], yv[N], wv[N];
 
-/* poly to fit, highest coef first */
+/* poly coefficients to fit, highest degree first */
 double cv[D + 1] = { 2, 1, -1, M_PI };
 
 void init() {
@@ -29,7 +29,7 @@ void init() {
 #endif
     for (i = 0; i < N; i++) {
 
-        /* evaluate poly to fit using horner's method */
+        /* evaluate the poly to fit using horner's method */
         for (y = 0, j = 0; j <= D; j++) {
             y *= i;
             y += cv[j];
@@ -41,89 +41,71 @@ void init() {
         wv[i] = 1;
 #else
         /* minimize relative residual */
-        wv[i] = 1. / (y * y);    /* NB y != 0 for this example poly */
+        wv[i] = 1. / (y * y); /* y != 0 for this example poly */
 #endif
     }
 }
 
 int main(int argc, char *argv[]) {
-    void  *fit;
-    int    i, j, maxat = -1;
-    double cofs[D + 1], maxrel = -1, d[D + 1];
-
-    struct timeval tv0, tv1;
-
-    /* allocate the workspace */
-    if ((fit = polyfit_alloc(N, D)) == NULL) {
-        perror("calloc");
-        return 1;
-    }
+    void  *plan, *fit;
+    int    i, j;
+    double cofs[D + 1], d[D + 1], *t;
 
     /* fill in xv, yv, and, wv */
     init();
 
-    /* do the fit */
-    gettimeofday(&tv0, NULL);
-    polyfit(fit, xv, yv, wv);
-    gettimeofday(&tv1, NULL);
+    /* create the fit plan */
+    if ((plan = polyfit_plan(D, xv, wv, N)) == NULL) {
+        perror("calloc");
+        return 1;
+    }
 
-    /* print guts of fit */
-    /* polyfit_dump(fit); */
+    /* compute the fit */
+    if ((fit = polyfit_fit(plan, yv)) == NULL) {
+        perror("calloc");
+        return 1;
+    }
 
     /* print fit stats */
     printf("maxdeg %d\n", polyfit_maxdeg(fit));
     printf("points %d\n", polyfit_npoints(fit));
-    printf("time   %f\n",
-        (float) (
-            (tv1.tv_sec - tv0.tv_sec) + 1e-6 * (tv1.tv_usec - tv0.tv_usec)
-        )
-    );
 
     /* print per-degree rms errors */
+    t = polyfit_rms_errs(fit);
     printf("erms  ");
     for (i = 0; i <= D; i++) {
-        printf(" %.18e", polyfit_err(fit, i));
+        printf(" %.18e", t[i]);
     }
     printf("\n");
 
-    /* print relative resid error across all xv_i */
-    for (i = 0; i < N; i++) {
-        double err;
-
-        polyfit_val(fit, xv[i], D, d, 0);
-        err = fabs(d[0] / yv[i] - 1);
-        if (err > maxrel) {
-            maxrel = err;
-            maxat  = i;
-        }
-    }
-    printf("relerr %.18e %d\n", (float) maxrel, maxat);
-
-    /* print some values */
+    /* print a few values */
     for (i = 0; i < 4; i++) {
-        polyfit_val(fit, xv[i], D, d, D);
-        printf("value  %f", (float) xv[i]);
+        polyfit_eval(fit, xv[i], D, d, D);
+        printf("value  %f", xv[i]);
         for (j = 0; j <= D; j++) {
             printf(" %.18e", d[j]);
         }
         printf("\n");
     }
 
-    /* coefs about x0=0 */
-    polyfit_cofs(fit, D, xv[0], cofs);
-    printf("coefs0");
+    /* print value and all derivatives for all degrees */
     for (i = 0; i <= D; i++) {
-        printf(" %.18e", cofs[i]);
+        polyfit_eval(fit, xv[0], i, d, -1);
+        printf("deg    %d", i);
+        for (j = 0; j <= i; j++) {
+            printf(" %.18e", d[j]);
+        }
+        printf("\n");
     }
-    printf("\n");
 
-    /* value and all derivs at xv[0] */
-    printf("value0");
-    polyfit_val(fit, xv[0], D, d, D);
-    for (j = 0; j <= D; j++) {
-        printf(" %.18e", d[j]);
+    /* print coefficients for all degrees about (x - xv[0]) */
+    for (i = 0; i <= D; i++) {
+        polyfit_cofs(fit, xv[0], i, cofs);
+        printf("coefs  %d", i);
+        for (j = 0; j <= i; j++) {
+            printf(" %.18e", cofs[j]);
+        }
     }
-    printf("\n");
     
     /* coefs halfway through */
     polyfit_cofs(fit, D, xv[N>>1], cofs);
@@ -133,8 +115,9 @@ int main(int argc, char *argv[]) {
     }
     printf("\n");
 
-    /* free the workspace */
+    /* free the fit objects */
     polyfit_free(fit);
+    polyfit_free(plan);
     return 0;
 }
 
