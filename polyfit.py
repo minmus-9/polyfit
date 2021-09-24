@@ -390,14 +390,6 @@ class PolyfitFit(object):
         """
         return self.cofs(x0, deg)
 
-    def maxdeg(self):
-        "return the maximumfit degree"
-        return polyfit_maxdeg(self.plan)
-
-    def npoints(self):
-        "return the number of fit points"
-        return polyfit_npoints(self.plan)
-
     def rms_errors(self):
         """
         return a list of rms errors, one per fit degree. use them to
@@ -406,13 +398,19 @@ class PolyfitFit(object):
         return self.rms
 
 class PolyfitPlan(object):
-    ## pylint: disable=too-few-public-methods
-
     def __init__(self, maxdeg, xv, wv):
         self.plan = polyfit_plan(maxdeg, xv, wv)
 
     def fit(self, yv):
         return PolyfitFit(self.plan, yv)
+
+    def maxdeg(self):
+        "return the maximumfit degree"
+        return polyfit_maxdeg(self.plan)
+
+    def npoints(self):
+        "return the number of fit points"
+        return polyfit_npoints(self.plan)
 ## }}}
 def demo():
     ## pylint: disable=too-many-locals
