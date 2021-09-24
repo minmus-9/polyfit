@@ -13,7 +13,7 @@ from __future__ import print_function
 import math
 
 __all__ = [
-    "PolyfitPlan",
+    "PolyfitPlan", "PolyfitFit",
     "polyfit_plan", "polyfit_fit", "polyfit_eval",
     "polyfit_coefs", "polyfit_maxdeg", "polyfit_npoints"
 ]
@@ -300,22 +300,9 @@ def polyfit_fit(plan, yv):
     )
 ## }}}
 ## {{{ polyfit_eval
-def polyfit_eval_(plan, ll_fit, x, deg=-1, nder=0):
+def _polyfit_eval_(plan, ll_fit, x, deg=-1, nder=0):
     """
-    given a plan, a fit data object returned by
-    polyfit_fit, a point x, a least squares fit degree deg,
-    and a desired number of derivatives to compute nder,
-    calculate and return the value of the polynomial and
-    any requested derivatives.
-
-    if deg is negative, use maxdeg instead. if nder is
-    negative, use the final value of deg; otherwise, compute
-    ndeg derivatives of the least squares polynomial of
-    degree deg.
-
-    returns a list whose first element is the value of the
-    least squares polynomial of degree deg at x. subsequent
-    elements are the requested derivatives.
+    internal: polyfit_eval in quad precision.
     """
     ## pylint: disable=too-many-locals
     b, c, D = plan["b"], plan["c"], plan["D"]
@@ -363,8 +350,26 @@ def polyfit_eval_(plan, ll_fit, x, deg=-1, nder=0):
     return ret
 
 def polyfit_eval(plan, a, x, deg=-1, nder=0):
+    """
+    given a plan, a fit data object returned by
+    polyfit_fit, a point x, a least squares fit degree deg,
+    and a desired number of derivatives to compute nder,
+    calculate and return the value of the polynomial and
+    any requested derivatives.
+
+    if deg is negative, use maxdeg instead. if nder is
+    negative, use the final value of deg; otherwise, compute
+    ndeg derivatives of the least squares polynomial of
+    degree deg.
+
+    returns a list whose first element is the value of the
+    least squares polynomial of degree deg at x. subsequent
+    elements are the requested derivatives. if zero
+    derivatives are requested, the scalar function value is
+    returned.
+    """
     ## get float values
-    r = polyfit_eval_(plan, a, x, deg, nder)
+    r = _polyfit_eval_(plan, a, x, deg, nder)
     r = [to_float(v) for v in r]
     ## return scalar if no derivs
     return r[0] if len(r) == 1 else r
@@ -400,19 +405,36 @@ def polyfit_npoints(plan):
 ## {{{ Polyfit classes
 class PolyfitFit(object):
     """
-    polynomial fitter returned by PolyfitPlan.fit()
+    orthogonal polynomial fitter returned by PolyfitPlan.fit()
     """
 
     def __init__(self, plan, yv):
         """
-        given a plan and a set of y values yv[], call polyfit_plan
-        to compute the least squares fits up to degree maxdeg.
+        given a set of y values yv[], compute the least squares
+        fits up to degree maxdeg.
         """
         self.plan = plan
         self.res, self.rms, self.eval, self.cofs = \
             polyfit_fit(plan, yv)
 
     def __call__(self, x, deg=-1, nder=0):
+        """
+        given a point x, a least squares fit degree deg,
+        and a desired number of derivatives to compute nder,
+        calculate and return the value of the polynomial and
+        any requested derivatives.
+
+        if deg is negative, use maxdeg instead. if nder is
+        negative, use the final value of deg; otherwise, compute
+        ndeg derivatives of the least squares polynomial of
+        degree deg.
+
+        returns a list whose first element is the value of the
+        least squares polynomial of degree deg at x. subsequent
+        elements are the requested derivatives. if zero
+        derivatives are requested, the scalar function value is
+        returned.
+        """
         return self.eval(x, deg, nder)
 
     def coefs(self, x0, deg=-1):
@@ -437,10 +459,30 @@ class PolyfitFit(object):
         return self.rms
 
 class PolyfitPlan(object):
+    """
+    orthogonal polynomial least squares planning class. you must
+    create one of these prior to fitting; it can be reused for
+    multiple fits of the same xv[] and wv[].
+    """
+
     def __init__(self, maxdeg, xv, wv):
+        """
+        given x values in xv[] and positive weights in wv[],
+        make a plan to perform least squares fitting up to
+        degree maxdeg.
+
+        this is code for "compute everything need to calculate
+        an expansion in xv- and wv-specific orthogonal
+        polynomials".
+        """
         self.plan = polyfit_plan(maxdeg, xv, wv)
 
     def fit(self, yv):
+        """
+        given a set of y values in yv[], compute all least
+        squares fits to yv[] up to degree maxdeg. returns
+        a PolyfitFit object.
+        """
         return PolyfitFit(self.plan, yv)
 
     def maxdeg(self):
