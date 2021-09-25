@@ -447,7 +447,6 @@ class PolyfitFit(object):
     """
 
     def __init__(self, plan, yv):
-        self.plan = plan
         self.res, self.rms, self.eval, self.cofs = \
             polyfit_fit(plan, yv)
 

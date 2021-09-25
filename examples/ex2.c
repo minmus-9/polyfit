@@ -47,8 +47,8 @@ void init() {
 }
 
 int main(int argc, char *argv[]) {
-    void  *plan, *fit;
-    int    i, j;
+    void  *plan, *fit, *ev;
+    int    i, j, n;
     double cofs[D + 1], d[D + 1], *t;
 
     /* fill in xv, yv, and, wv */
@@ -56,22 +56,39 @@ int main(int argc, char *argv[]) {
 
     /* create the fit plan */
     if ((plan = polyfit_plan(D, xv, wv, N)) == NULL) {
-        perror("calloc");
+        perror("polyfit_plan");
         return 1;
     }
 
     /* compute the fit */
     if ((fit = polyfit_fit(plan, yv)) == NULL) {
-        perror("calloc");
+        perror("polyfit_fit");
+        return 1;
+    }
+
+    /* make an evaluator */
+    if ((ev = polyfit_evaluator(fit)) == NULL) {
+        perror("polyfit_evaluator");
         return 1;
     }
 
     /* print fit stats */
-    printf("maxdeg %d\n", polyfit_maxdeg(fit));
-    printf("points %d\n", polyfit_npoints(fit));
+    if ((n = polyfit_maxdeg(plan)) < 0) {
+        perror("polyfit_maxdeg");
+        return 1;
+    }
+    printf("maxdeg %d\n", n);
+    if ((n = polyfit_npoints(plan)) < 0) {
+        perror("polyfit_npoints");
+        return 1;
+    }
+    printf("points %d\n", n);
 
     /* print per-degree rms errors */
-    t = polyfit_rms_errs(fit);
+    if ((t = polyfit_rms_errs(fit)) == NULL) {
+        perror("polyfit_rms_errs");
+        return 1;
+    }
     printf("erms  ");
     for (i = 0; i <= D; i++) {
         printf(" %.18e", t[i]);
@@ -80,7 +97,10 @@ int main(int argc, char *argv[]) {
 
     /* print a few values */
     for (i = 0; i < 4; i++) {
-        polyfit_eval(fit, xv[i], D, d, D);
+        if (polyfit_eval(ev, xv[i], D, d, D) < 0) {
+            perror("polyfit_eval");
+            return 1;
+        }
         printf("value  %f", xv[i]);
         for (j = 0; j <= D; j++) {
             printf(" %.18e", d[j]);
@@ -90,7 +110,10 @@ int main(int argc, char *argv[]) {
 
     /* print value and all derivatives for all degrees */
     for (i = 0; i <= D; i++) {
-        polyfit_eval(fit, xv[0], i, d, -1);
+        if (polyfit_eval(ev, xv[0], i, d, -1) < 0) {
+            perror("polyfit_eval");
+            return 1;
+        }
         printf("deg    %d", i);
         for (j = 0; j <= i; j++) {
             printf(" %.18e", d[j]);
@@ -100,7 +123,10 @@ int main(int argc, char *argv[]) {
 
     /* print coefficients for all degrees about (x - xv[0]) */
     for (i = 0; i <= D; i++) {
-        polyfit_cofs(fit, xv[0], i, cofs);
+        if (polyfit_cofs(ev, xv[0], i, cofs) < 0) {
+            perror("polyfit_cofs");
+            return 1;
+        }
         printf("coefs  %d", i);
         for (j = 0; j <= i; j++) {
             printf(" %.18e", cofs[j]);
@@ -108,7 +134,10 @@ int main(int argc, char *argv[]) {
     }
     
     /* coefs halfway through */
-    polyfit_cofs(fit, D, xv[N>>1], cofs);
+    if (polyfit_cofs(ev, D, xv[N>>1], cofs) < 0) {
+        perror("polyfit_cofs");
+        return 1;
+    }
     printf("coefs ");
     for (i = 0; i <= D; i++) {
         printf(" %.18e", cofs[i]);
@@ -116,6 +145,7 @@ int main(int argc, char *argv[]) {
     printf("\n");
 
     /* free the fit objects */
+    polyfit_free(ev);
     polyfit_free(fit);
     polyfit_free(plan);
     return 0;
