@@ -20,23 +20,37 @@ __all__ = ["Polyfit"]
 ## }}}
 ## {{{ low level glue
 _libpolyfit = ctypes.CDLL(
-    os.path.join(os.path.dirname(__file__), "libpolyfit.so")
+    os.path.join(
+        os.path.dirname(
+            os.path.abspath(__file__)
+        ),
+        "libpolyfit.so"
+    )
 )
 
-_alloc = _libpolyfit.polyfit_alloc
-_alloc.argtypes = [ctypes.c_int, ctypes.c_int]
-_alloc.restype  = ctypes.c_void_p
+_plan = _libpolyfit.polyfit_plan
+_plan.argtypes = [ctypes.c_int, ctypes.c_void_p, ctypes.c_void_p, ctypes.c_int]
+_plan.restype  = ctypes.c_void_p
 
-def polyfit_alloc(npoints, degree):
+def polyfit_plan(degree, xv, wv):
     "allocate data for a fit"
     if not (
-            isinstance(npoints, int) and \
-            isinstance(degree, int)
+            isinstance(xv, array.array) and
+            isinstance(wv, array.array)
         ):
-        raise TypeError("bad types")
+            raise TypeError("bad data type")
+    if not (xv.typecode == wv.typecode == "d"):
+        raise TypeError("bad data type")
+    npoints = len(xv)
+    if not npoints:
+        raise ValueError("no data to fit")
+    if not isinstance(degree, int):
+        raise TypeError("degree must be an int")
     if not 0 <= degree < npoints:
         raise ValueError("bad values")
-    return _alloc(npoints, degree)
+    xa, _ = xv.buffer_info()
+    wa, _ = wv.buffer_info()
+    return _alloc(degree, xa, wa, npoints)
 
 _free = _libpolyfit.polyfit_free
 _free.argtypes = [ctypes.c_void_p]

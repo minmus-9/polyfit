@@ -16,8 +16,8 @@ import numpy as np
 
 sys.path.insert(0, "..")
 
-#from polyfit import Polyfit    ## pylint: disable=wrong-import-position
-from cpolyfit import Polyfit    ## pylint: disable=wrong-import-position
+from polyfit import PolyfitPlan    ## pylint: disable=wrong-import-position
+#from cpolyfit import Polyfit    ## pylint: disable=wrong-import-position
 
 sys.stdout = os.fdopen(1, "w", 1)
 
@@ -97,8 +97,37 @@ def npfit(xv, yv, wv, D):
     for i in range(D):
         a.append(mx[i:i+D])
     a = np.array(a)
+    #print(np.linalg.cond(a))
+    L = np.linalg.cholesky(a)
+    y = np.linalg.solve(L, b)
+    cofs = list(np.linalg.solve(np.transpose(L), y))
+    return cofs
 
-    cofs = list(np.linalg.solve(a, b))
+def npfit(xv, yv, wv, D):
+    "numpy fit"
+    xv = np.array(xv)
+    yv = np.array(yv)
+    wv = np.array(wv)
+    xa = wv             ## accumulator
+    mx = [ ]            ## moments
+    b  = [ ]            ## rhs in ac=b
+    for i in range(D * 2):
+        if i < D:
+            b.append(np.dot(yv, xa))
+        mx.append(sum(xa))
+        xa = xa * xv
+    b  = np.array(b)
+    mx = np.array(mx)
+    ## build the normal matrix
+    a  = [ ]
+    for i in range(D):
+        a.append(mx[i:i+D])
+    a = np.array(a)
+    ## solve the normal equations
+    L = np.linalg.cholesky(a)
+    y = np.linalg.solve(L, b)
+    cofs = list(np.linalg.solve(np.transpose(L), y))
+    cofs.reverse()
     return cofs
 
 def do_numpy(cofs, xv, wv=None):
@@ -148,7 +177,7 @@ def do_numpy(cofs, xv, wv=None):
 def do_both(cofs, xv, wv=None):
     "do polyfit and numpy"
     xv = array.array('d', xv)
-    do_polyfit(cofs, xv, wv)
+    #do_polyfit(cofs, xv, wv)
     do_numpy(cofs, xv, wv)
 
 print("#" * 72)

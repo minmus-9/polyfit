@@ -287,7 +287,7 @@ def polyfit_fit(plan, yv):
     """
     ll_fit = polyfit_ll_fit(plan, yv)
     ## get coefs, rms errors, and residuals
-    a, e, rv = ll_fit["a"], ll_fit["e"], ll_fit["r"]
+    e, rv = ll_fit["e"], ll_fit["r"]
     ## return residuals, rms errors by degree, a poly
     ## evaluator, and a coef evaluator
     return (
