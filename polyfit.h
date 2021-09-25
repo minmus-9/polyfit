@@ -110,8 +110,9 @@ extern int polyfit_npoints(
  * returns 0 on success. on failure returns -1 and sets errno:
  *   EINVAL - fit is not a fit.
  */
-extern const double *polyfit_resids(
-    const void * const fit
+extern double *polyfit_resids(
+    const void * const fit,
+    double * const resids
 );
 
 /***************************************************************
@@ -121,8 +122,9 @@ extern const double *polyfit_resids(
  * returns 0 on success. on failure returns -1 and sets errno:
  *   EINVAL - fit is not a fit.
  */
-extern const double *polyfit_rms_errs(
-    const void * const fit
+extern double *polyfit_rms_errs(
+    const void * const fit,
+    double * const errs
 );
 
 /***************************************************************

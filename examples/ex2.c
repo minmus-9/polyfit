@@ -86,7 +86,7 @@ int main(int argc, char *argv[]) {
     printf("points %d\n", n);
 
     /* print per-degree rms errors */
-    if ((t = polyfit_rms_errs(fit)) == NULL) {
+    if ((t = polyfit_rms_errs(fit, NULL)) == NULL) {
         perror("polyfit_rms_errs");
         return 1;
     }

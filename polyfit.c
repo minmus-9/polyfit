@@ -722,17 +722,35 @@ int polyfit_maxdeg(const void * const plan_) {
 }
 /* }}} */
 /* {{{ polyfit_resids */
-const double *polyfit_resids(const void * const fit_) {
+double *polyfit_resids(const void * const fit_, double * const resids) {
     const fit_t *fit = fit_;
+    int i;
 
-    return fit->resids;
+    if (fit->magic != FIT_MAGIC) {
+        errno = EINVAL;
+        return NULL;
+    }
+    if (resids == NULL)
+        return fit->resids;
+    for (i = 0; i <= fit->plan->N; i++)
+        resids[i] = fit->resids[i];
+    return resids;
 }
 /* }}} */
 /* {{{ polyfit_rms_errs */
-extern const double *polyfit_rms_errs(const void * const fit_) {
+double *polyfit_rms_errs(const void * const fit_, double * const errs) {
     const fit_t *fit = fit_;
+    int i;
 
-    return fit->rms_errs;
+    if (fit->magic != FIT_MAGIC) {
+        errno = EINVAL;
+        return NULL;
+    }
+    if (errs == NULL)
+        return fit->rms_errs;
+    for (i = 0; i <= fit->plan->D; i++)
+        errs[i] = fit->rms_errs[i];
+    return errs;
 }
 /* }}} */
 

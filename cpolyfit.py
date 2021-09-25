@@ -18,6 +18,19 @@ import time
 
 __all__ = ["Polyfit"]
 ## }}}
+## {{{ util funcs
+def isarray(a, minelts=None, maxelts=None):
+    if not isinstance(a, array.array):
+        raise TypeError("expected array")
+    if a.typecode != "d":
+        raise TypeError("expected type-d array")
+    n = len(a)
+    if minelts is not None and n < minelts:
+        raise ValueError("array too short")
+    if maxelts is not None and n > maxelts:
+        raise ValueError("array too long")
+    return a
+## }}}
 ## {{{ low level glue
 _libpolyfit = ctypes.CDLL(
     os.path.join(
@@ -27,30 +40,6 @@ _libpolyfit = ctypes.CDLL(
         "libpolyfit.so"
     )
 )
-
-_plan = _libpolyfit.polyfit_plan
-_plan.argtypes = [ctypes.c_int, ctypes.c_void_p, ctypes.c_void_p, ctypes.c_int]
-_plan.restype  = ctypes.c_void_p
-
-def polyfit_plan(degree, xv, wv):
-    "allocate data for a fit"
-    if not (
-            isinstance(xv, array.array) and
-            isinstance(wv, array.array)
-        ):
-            raise TypeError("bad data type")
-    if not (xv.typecode == wv.typecode == "d"):
-        raise TypeError("bad data type")
-    npoints = len(xv)
-    if not npoints:
-        raise ValueError("no data to fit")
-    if not isinstance(degree, int):
-        raise TypeError("degree must be an int")
-    if not 0 <= degree < npoints:
-        raise ValueError("bad values")
-    xa, _ = xv.buffer_info()
-    wa, _ = wv.buffer_info()
-    return _alloc(degree, xa, wa, npoints)
 
 _free = _libpolyfit.polyfit_free
 _free.argtypes = [ctypes.c_void_p]
@@ -62,45 +51,49 @@ def polyfit_free(fit):
         raise TypeError("bad fit type")
     _free(fit)
 
-_polyfit = _libpolyfit.polyfit
-_polyfit.argtypes = [
-    ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p
-]
-_polyfit.restype = None
+_plan = _libpolyfit.polyfit_plan
+_plan.argtypes = [ctypes.c_int, ctypes.c_void_p, ctypes.c_void_p, ctypes.c_int]
+_plan.restype  = ctypes.c_void_p
 
-def polyfit(fit, xv, yv, wv):
-    "fit a poly to data"
-    t0 = time.time()
-    if not isinstance(fit, int):
-        raise TypeError("bad fit type")
-    if not (
-            isinstance(xv, array.array) and \
-            isinstance(yv, array.array) and \
-            isinstance(wv, array.array)
-        ):
-        raise TypeError("bad types")
-    if not (
-            xv.typecode == 'd' and \
-            yv.typecode == 'd' and \
-            wv.typecode == 'd'
-        ):
-        raise TypeError("bad types")
-    if len(xv) != polyfit_npoints(fit):
-        raise ValueError("bad sizes")
-    if not len(xv) == len(yv) == len(wv):
-        raise ValueError("bad sizes")
+def polyfit_plan(degree, xv, wv):
+    "allocate data for a fit"
+    if not isinstance(degree, int):
+        raise TypeError("degree must be an int")
+    if not 0 <= degree < npoints:
+        raise ValueError("bad values")
+    isarray(xv, 1)
+    N = len(xv)
+    isarray(wv, N, N)
     if min(wv) <= 0:
         raise ValueError("bad wv")
     xa, _ = xv.buffer_info()
-    ya, _ = yv.buffer_info()
     wa, _ = wv.buffer_info()
-    _polyfit(
-        fit,
-        ctypes.c_void_p(xa),
-        ctypes.c_void_p(ya),
-        ctypes.c_void_p(wa)
-    )
-    return time.time() - t0
+    return _plan(degree, xa, wa, npoints)
+
+_fit = _libpolyfit.polyfit_fit
+_fit.argtypes = [
+    ctypes.c_void_p, ctypes.c_void_p
+]
+_fit.restype = ctypes.c_void_p
+
+def polyfit_fit(plan, yv):
+    "fit a poly to data"
+    if not isinstance(fit, int):
+        raise TypeError("bad fit type")
+    N = polyfit_npoints(plan)
+    isarray(yv, N, N)
+    ya, _ = yv.buffer_info()
+    return _polyfit_fit(plan, ya)
+
+_eval = _libpolyfit.polyfit_eval
+_eval.argtypes = [ctypes.c_void_p]
+_eval.restype  = ctypes.c_void_p
+
+def polyfit_evaluator(fit):
+    "eval fit data"
+    if not isinstance(fit, int):
+        raise TypeError("bad fit type")
+    return _eval(fit)
 
 _poly_npoints = _libpolyfit.polyfit_npoints
 _poly_npoints.argtypes = [ctypes.c_void_p]
@@ -122,70 +115,31 @@ def polyfit_maxdeg(fit):
         raise TypeError("bad fit type")
     return _poly_maxdeg(fit)
 
-_polyerr = _libpolyfit.polyfit_err
-_polyerr.argtypes = [ctypes.c_void_p, ctypes.c_int]
-_polyerr.restype  = ctypes.c_double
+_polyres = _libpolyfit.polyfit_resids
+_polyres.argtypes = [ctypes.c_void_p, ctypes.c_void_p]
+_polyres.restype  = ctypes.c_void_p
 
-
-def polyfit_err(fit, degree):
-    "return rms fit error"
+def polyfit_resids(fit):
     if not isinstance(fit, int):
         raise TypeError("bad fit type")
-    if not isinstance(degree, int):
-        raise TypeError("bad degree type")
-    if not 0 <= degree <= polyfit_maxdeg(fit):
-        raise ValueError("illegal degree")
-    return _polyerr(fit, degree)
+    ret   = array.array("d", [0] * polyfit_npoints(fit))
+    ra, _ = ret.buffer_info()
+    _polyres(fit, ra)
+    return ret
 
-_polyval = _libpolyfit.polyfit_val
-_polyval.argtypes = [
-    ctypes.c_void_p,
-    ctypes.c_double,
-    ctypes.c_int,
-    ctypes.c_void_p,
-    ctypes.c_int
-]
-_polyval.restype = None
+_polyerr = _libpolyfit.polyfit_rms_errs
+_polyerr.argtypes = [ctypes.c_void_p, ctypes.c_void_p]
+_polyerr.restype  = ctypes.c_void_p
 
-def polyfit_val(fit, x, degree, values):
-    "evaluate poly and derivatives"
+def polyfit_rms_errs(fit):
+    "return rms fit errors per degree"
     if not isinstance(fit, int):
         raise TypeError("bad fit type")
-    if not isinstance(degree, int):
-        raise TypeError("bad types")
-    if not 0 <= degree <= polyfit_maxdeg(fit):
-        raise ValueError("bad nderiv")
-    if not isinstance(values, array.array):
-        raise TypeError("bad type for values")
-    if values.typecode != 'd':
-        raise TypeError("bad type for values")
-    if len(values) < 1:
-        raise ValueError("bad values")
-    da, _ = values.buffer_info()
-    _polyval(fit, float(x), degree, ctypes.c_void_p(da), len(values) - 1)
-    return values
+    ret   = array.array("d", [0] * (polyfit_maxdeg(fit) + 1))
+    ra, _ = ret.buffer_info()
+    _polyerr(fit, ra)
+    return ret
 
-_polycofs = _libpolyfit.polyfit_cofs
-_polycofs.argtypes = [
-    ctypes.c_void_p, ctypes.c_int, ctypes.c_double, ctypes.c_void_p
-]
-_polycofs.restype = None
-
-def polyfit_cofs(fit, degree, x0, cofs):
-    "return poly coefficients"
-    if not isinstance(fit, int):
-        raise TypeError("bad fit type")
-    if not isinstance(degree, int):
-        raise TypeError("bad degree type")
-    if not 0 <= degree <= polyfit_maxdeg(fit):
-        raise ValueError("bad degree")
-    if not (isinstance(cofs, array.array) and cofs.typecode == 'd'):
-        raise TypeError("bad cofs type")
-    if len(cofs) < degree + 1:
-        raise ValueError("bad cofs length")
-    ca, _ = cofs.buffer_info()
-    _polycofs(fit, degree, float(x0), ctypes.c_void_p(ca))
-    return cofs
 ## }}}
 ## {{{ class-based interface
 class Polyfit(object):
