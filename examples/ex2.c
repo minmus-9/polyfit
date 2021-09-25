@@ -49,7 +49,8 @@ void init() {
 int main(int argc, char *argv[]) {
     void  *plan, *fit, *ev;
     int    i, j, n;
-    double cofs[D + 1], d[D + 1], *t;
+    double coefs[D + 1], d[D + 1];
+    const double *t;
 
     /* fill in xv, yv, and, wv */
     init();
@@ -123,24 +124,25 @@ int main(int argc, char *argv[]) {
 
     /* print coefficients for all degrees about (x - xv[0]) */
     for (i = 0; i <= D; i++) {
-        if (polyfit_cofs(ev, xv[0], i, cofs) < 0) {
-            perror("polyfit_cofs");
+        if (polyfit_coefs(ev, xv[0], i, coefs) < 0) {
+            perror("polyfit_coefs");
             return 1;
         }
         printf("coefs  %d", i);
         for (j = 0; j <= i; j++) {
-            printf(" %.18e", cofs[j]);
+            printf(" %.18e", coefs[j]);
         }
+        printf("\n");
     }
     
     /* coefs halfway through */
-    if (polyfit_cofs(ev, D, xv[N>>1], cofs) < 0) {
-        perror("polyfit_cofs");
+    if (polyfit_coefs(ev, xv[N>>1], D, coefs) < 0) {
+        perror("polyfit_coefs");
         return 1;
     }
     printf("coefs ");
     for (i = 0; i <= D; i++) {
-        printf(" %.18e", cofs[i]);
+        printf(" %.18e", coefs[i]);
     }
     printf("\n");
 

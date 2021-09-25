@@ -29,7 +29,7 @@ extern void *polyfit_plan(
  */
 extern void *polyfit_fit(
     const void * const plan,
-    const double * const yv,
+    const double * const yv
 );
 
 /***************************************************************
@@ -78,7 +78,7 @@ extern int polyfit_eval(
  *          - coefs is NULL
  */
 extern int polyfit_coefs(
-    const void * const evaluator,
+    void * const evaluator,
     const double x0,
     const int degree,
     double * const coefs
@@ -122,7 +122,7 @@ extern const double *polyfit_resids(
  *   EINVAL - fit is not a fit.
  */
 extern const double *polyfit_rms_errs(
-    const void * const fit,
+    const void * const fit
 );
 
 /***************************************************************
@@ -130,6 +130,7 @@ extern const double *polyfit_rms_errs(
  *
  * returns 0 on success. on failure returns -1 and sets errno:
  *   EINVAL - unrecognized object type.
+ *          - polyfit_object is NULL.
  */
 extern int polyfit_free(
     void * const polyfit_object
