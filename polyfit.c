@@ -1,5 +1,5 @@
-/***********************************************************************
- * polyfit.c
+/****************************************************************
+ * polyfit.c - quad-precision orthogonal polynomial least squares
  *
  * there are no comments in this code. see the python code
  * for the commented reference implementation. this code

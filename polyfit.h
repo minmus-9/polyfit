@@ -1,5 +1,5 @@
 /***********************************************************************
- * polyfit.h
+ * polyfit.h - quad-precision orthogonal polynomial least squares
  */
 
 #ifndef polyfit_h__

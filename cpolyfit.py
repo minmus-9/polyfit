@@ -3,7 +3,7 @@ wrapper around libpolyfit.so
 
 there are no comments in this code. see the pure python
 code for the commented reference implementation. see the
-demo() function below for usage examples.
+demo in examples/ex4.py for usage
 """
 
 ## {{{ prologue
