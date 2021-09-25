@@ -46,6 +46,7 @@ def demo():
     D    = len(cv) - 1
     plan = PolyfitPlan(D, xv, wv)
     fit  = plan.fit(yv)
+    ev   = fit.evaluator()
 
     ## print the fit stats
     deg = plan.maxdeg()
@@ -57,18 +58,18 @@ def demo():
 
     ## print a few values
     for i in range(4):
-        print("value  %.1f %s" % (xv[i], fit(xv[i], nder=-1)))
+        print("value  %.1f %s" % (xv[i], ev(xv[i], nder=-1)))
 
     ## print value and all derivatives for all degrees
     for i in range(D + 1):
-        print("deg    %d %s" % (i, fit(xv[0], deg=i, nder=-1)))
+        print("deg    %d %s" % (i, ev(xv[0], deg=i, nder=-1)))
 
     ## print coefficients for all degrees about (x - xv[0])
     for i in range(D + 1):
-        print("coefs  %d %s" % (i, fit.coefs(xv[0], i)))
+        print("coefs  %d %s" % (i, ev.coefs(xv[0], i)))
 
     ## coefs halfway through
-    print("coefs ", fit.coefs(xv[N >> 1], deg))
+    print("coefs ", ev.coefs(xv[N >> 1], deg))
 
 if __name__ == "__main__":
     demo()

@@ -13,7 +13,7 @@ from __future__ import print_function
 import math
 
 __all__ = [
-    "PolyfitPlan", "PolyfitFit",
+    "PolyfitPlan", "PolyfitFit", "PolyfitEvaluator",
     "polyfit_plan", "polyfit_fit", "polyfit_eval",
     "polyfit_coefs", "polyfit_maxdeg", "polyfit_npoints"
 ]
@@ -384,7 +384,7 @@ def polyfit_coefs(plan, ll_fit, x0=0., deg=-1):
     default), use maxdeg instead.
     """
     ## get value and derivs, divide by j!
-    vals = polyfit_eval_(plan, ll_fit, x0, deg, deg)
+    vals = _polyfit_eval_(plan, ll_fit, x0, deg, deg)
     fac  = one()
     for j in range(2, len(vals)):
         fac     = div(fac, to_quad(j))
@@ -403,19 +403,15 @@ def polyfit_npoints(plan):
     return plan["N"]
 ## }}}
 ## {{{ Polyfit classes
-class PolyfitFit(object):
+class PolyfitEvaluator(object):
     """
-    orthogonal polynomial fitter returned by PolyfitPlan.fit()
+    returned by PolyfitFit.evaluator(). this object evaluates
+    the fit polynomial and its derivatives, and also returns
+    its coefficients in powers of (x - x0) for given x0.
     """
 
-    def __init__(self, plan, yv):
-        """
-        given a set of y values yv[], compute the least squares
-        fits up to degree maxdeg.
-        """
-        self.plan = plan
-        self.res, self.rms, self.eval, self.cofs = \
-            polyfit_fit(plan, yv)
+    def __init__(self, doeval, docofs):
+        self.eval, self.cofs = doeval, docofs
 
     def __call__(self, x, deg=-1, nder=0):
         """
@@ -426,7 +422,7 @@ class PolyfitFit(object):
 
         if deg is negative, use maxdeg instead. if nder is
         negative, use the final value of deg; otherwise, compute
-        ndeg derivatives of the least squares polynomial of
+        nder derivatives of the least squares polynomial of
         degree deg.
 
         returns a list whose first element is the value of the
@@ -444,6 +440,22 @@ class PolyfitFit(object):
         instead.
         """
         return self.cofs(x0, deg)
+
+class PolyfitFit(object):
+    """
+    orthogonal polynomial fitter returned by PolyfitPlan.fit()
+    """
+
+    def __init__(self, plan, yv):
+        self.plan = plan
+        self.res, self.rms, self.eval, self.cofs = \
+            polyfit_fit(plan, yv)
+
+    def evaluator(self):
+        """
+        return a PolyfitEvaluator for this fit.
+        """
+        return PolyfitEvaluator(self.eval, self.cofs)
 
     def residuals(self):
         """
@@ -486,7 +498,7 @@ class PolyfitPlan(object):
         return PolyfitFit(self.plan, yv)
 
     def maxdeg(self):
-        "return the maximumfit degree"
+        "return the maximum fit degree"
         return polyfit_maxdeg(self.plan)
 
     def npoints(self):

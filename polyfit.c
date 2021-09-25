@@ -55,17 +55,16 @@ typedef struct fit {
     uint32_t magic;     /* FIT_MAGIC */
     plan_t  *plan;
     Quad_t  *a;         /* maxdeg + 1 */
-    Quad_t  *rv;        /* npoints */
     double  *rms_errs;  /* maxdeg + 1 */
     double  *resids;    /* npoints */
 } fit_t;
 
 typedef struct fit_scratch {
-    /* scratch */
     Quad_t  *phi_k;     /* npoints */
     Quad_t  *phi_km1;   /* npoints */
 #define e_vec a_vec
     Quad_t  *a_vec;     /* npoints */
+    Quad_t  *rv;        /* npoints */
 } fit_scratch_t;
 
 #define EVAL_MAGIC 0x4556414c   /* "EVAL" */
@@ -73,7 +72,7 @@ typedef struct fit_scratch {
 typedef struct eval {
     uint32_t magic;     /* EVAL_MAGIC */
     fit_t   *fit;
-    /* scratch */
+    /* scratch, don't allocate for each call */
     Quad_t  *zj;        /* maxdeg + 3 */
     Quad_t  *zjm1;      /* maxdeg + 3 */
 } eval_t;
