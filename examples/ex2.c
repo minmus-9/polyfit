@@ -102,7 +102,7 @@ int main(int argc, char *argv[]) {
             perror("polyfit_eval");
             return 1;
         }
-        printf("value  %f", xv[i]);
+        printf("value  %.1f", xv[i]);
         for (j = 0; j <= D; j++) {
             printf(" %.18e", d[j]);
         }

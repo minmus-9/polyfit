@@ -12,6 +12,11 @@ sys.path.insert(0, "..")
 from polyfit import PolyfitPlan \
     ## pylint: disable=wrong-import-position
 
+def flist(l):
+    if not isinstance(l, list):
+        l = [l]
+    return " ".join("%.18e" % x for x in l)
+
 def demo():
     "demo of the api"
     ## pylint: disable=unnecessary-comprehension
@@ -54,22 +59,22 @@ def demo():
     print("points", plan.npoints())
 
     ## print per-degree rms errors
-    print("erms  ", [fit.rms_errors()[d] for d in range(deg + 1)])
+    print("erms  ", flist(fit.rms_errors()))
 
     ## print a few values
     for i in range(4):
-        print("value  %.1f %s" % (xv[i], ev(xv[i], nder=-1)))
+        print("value  %.1f %s" % (xv[i], flist(ev(xv[i], nder=-1))))
 
     ## print value and all derivatives for all degrees
     for i in range(D + 1):
-        print("deg    %d %s" % (i, ev(xv[0], deg=i, nder=-1)))
+        print("deg    %d %s" % (i, flist(ev(xv[0], deg=i, nder=-1))))
 
     ## print coefficients for all degrees about (x - xv[0])
     for i in range(D + 1):
-        print("coefs  %d %s" % (i, ev.coefs(xv[0], i)))
+        print("coefs  %d %s" % (i, flist(ev.coefs(xv[0], i))))
 
     ## coefs halfway through
-    print("coefs ", ev.coefs(xv[N >> 1], deg))
+    print("coefs ", flist(ev.coefs(xv[N >> 1], deg)))
 
 if __name__ == "__main__":
     demo()
