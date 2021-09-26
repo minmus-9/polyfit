@@ -40,9 +40,10 @@ def npfit(xv, yv, wv, D):
         a.append(mx[i:i+D+1])
     a = np.array(a)
     ## solve the normal equations
-    L = np.linalg.cholesky(a)
-    y = np.linalg.solve(L, b)
-    cofs = list(np.linalg.solve(np.transpose(L), y))
+    L    = np.linalg.cholesky(a)
+    y    = np.linalg.solve(L, b)
+    cofs = np.linalg.solve(np.transpose(L), y)
+    cofs = list(cofs)
     cofs.reverse()
     return cofs
 

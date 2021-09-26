@@ -4,6 +4,8 @@
 
 ## pylint: disable=invalid-name,bad-whitespace
 
+from __future__ import print_function as _
+
 import array
 import sys
 
@@ -12,7 +14,6 @@ sys.path.insert(0, "..")
 from cpolyfit import PolyfitPlan \
     ## pylint: disable=wrong-import-position
 
-## {{{ demo code
 def demo():
     "demo code"
     ## pylint: disable=import-outside-toplevel,too-many-locals
@@ -53,7 +54,8 @@ def demo():
     del ev
     del fit
     del plan
-## }}}
 
 if __name__ == "__main__":
     demo()
+
+## EOF
