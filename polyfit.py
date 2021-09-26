@@ -8,7 +8,6 @@ from __future__ import print_function
 ## pylint: disable=invalid-name,bad-whitespace
 ## pylint: disable=useless-object-inheritance
 ## pylint: disable=unnecessary-comprehension
-## XXX pylint: disable=missing-docstring
 
 import math
 
@@ -81,9 +80,11 @@ def vectorsum(vec):
 ## }}}
 ## {{{ utility functions
 def zero():
+    "yup"
     return (0., 0.)
 
 def one():
+    "yup"
     return (1., 0.)
 
 def vappend(vec, x):

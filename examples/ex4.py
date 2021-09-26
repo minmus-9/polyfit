@@ -9,13 +9,13 @@ import sys
 
 sys.path.insert(0, "..")
 
-from cpolyfit import PolyfitPlan
+from cpolyfit import PolyfitPlan \
+    ## pylint: disable=wrong-import-position
 
 ## {{{ demo code
 def demo():
     "demo code"
-    ## x^2 + 4x + 2
-    ## pylint: disable=import-outside-toplevel
+    ## pylint: disable=import-outside-toplevel,too-many-locals
     import math
     xv = array.array('d', range(10000))
     def f(x, c=(2, 1, -1, math.pi)):

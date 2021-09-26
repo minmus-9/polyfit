@@ -7,10 +7,12 @@
 import math
 import sys
 
+from np import npfit
+
 sys.path.insert(0, "..")
 
 from polyfit import PolyfitPlan \
-    ## pylint: disable=wrong-import-position
+    ## pylint: disable=wrong-import-order,wrong-import-position
 
 def flist(l):
     "format a list to 18 decimal places"
@@ -19,12 +21,11 @@ def flist(l):
     return " ".join("%.18e" % x for x in l)
 
 def demo():
-    "demo of the api"
+    "compute rel err in poly coefs"
     ## pylint: disable=unnecessary-comprehension
 
     ## poly coefficients to fit, highest degree first
-    cv = [2, 1, -1, math.pi]
-    #cv = [1, -2, 1]
+    cv = [math.sqrt(2), math.exp(1), math.pi, 1]
 
     ## evaluate the polynomial above using horner's method
     def pv(x):
@@ -36,7 +37,7 @@ def demo():
         return r
 
     ## define the x and y values for the fit
-    N  = 10000
+    N  = 100000
     xv = [x for x in range(N)]
     yv = [pv(x) for x in xv]
 
@@ -59,23 +60,19 @@ def demo():
     print("maxdeg", deg)
     print("points", plan.npoints())
 
-    ## print per-degree rms errors
-    print("erms  ", flist(fit.rms_errors()))
+    ## print rel errs in coefs
+    obs = ev.coefs(xv[0], -1)
+    rel = [abs(o/e - 1.) for o, e in zip(obs, cv)]
+    print("polyfit:")
+    print("  coefs ", flist(obs))
+    print("  relerr", flist(rel))
 
-    ## print a few values
-    for i in range(4):
-        print("value  %.1f %s" % (xv[i], flist(ev(xv[i], nder=-1))))
-
-    ## print value and all derivatives for all degrees
-    for i in range(D + 1):
-        print("deg    %d %s" % (i, flist(ev(xv[0], deg=i, nder=-1))))
-
-    ## print coefficients for all degrees about (x - xv[0])
-    for i in range(D + 1):
-        print("coefs  %d %s" % (i, flist(ev.coefs(xv[0], i))))
-
-    ## coefs halfway through
-    print("coefs ", flist(ev.coefs(xv[N >> 1], deg)))
+    ## numpy
+    obs = npfit(xv, yv, wv, D)
+    rel = [abs(o/e - 1.) for o, e in zip(obs, cv)]
+    print("numpy:")
+    print("  coefs ", flist(obs))
+    print("  relerr", flist(rel))
 
 if __name__ == "__main__":
     demo()

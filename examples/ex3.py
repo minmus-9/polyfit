@@ -12,12 +12,12 @@ import os
 import sys
 import time
 
-import numpy as np
-
 sys.path.insert(0, "..")
 
-from polyfit import PolyfitPlan    ## pylint: disable=wrong-import-position
-#from cpolyfit import Polyfit    ## pylint: disable=wrong-import-position
+#from polyfit import PolyfitPlan     ## pylint: disable=wrong-import-position
+from cpolyfit import PolyfitPlan    ## pylint: disable=wrong-import-position
+
+from np import npfit
 
 sys.stdout = os.fdopen(1, "w", 1)
 
@@ -40,16 +40,17 @@ def printfit(fit, xv, yv, dt, tag=""):
     ## pylint: disable=too-many-locals
     "print polyfit output"
     tag = (": " + tag) if tag else ""
+    ev  = fit.evaluator()
     print("polyfit%s: dt %.4e" % (tag, dt))
     print("                  -max rel err-")
     print("deg     erms      erel     indx    coefs")
-    errs = [fit.rms_err(i) for i in range(fit.maxdeg() + 1)]
+    errs = fit.rms_errors()
     for i, err in enumerate(errs):
-        cofs = fit.coefs(degree=i, x0=0.)
+        cofs = ev.coefs(deg=i, x0=0.)
         maxrelerr, maxat = -1., None
         for j, x in enumerate(xv):
             exp = yv[j]
-            obs = fit(x, degree=i)
+            obs = ev(x, deg=i)
             rel = abs(obs / exp - 1.)
             if rel > maxrelerr:
                 maxrelerr, maxat = rel, j
@@ -70,65 +71,11 @@ def do_polyfit(cofs, xv, wv=None):
         wv  = array.array('d', [y**-2. for y in yv])
     else:
         tag = "custon weights"
-    t0  = time.time()
-    fit = Polyfit(len(cofs) - 1, xv, yv, wv)
-    dt  = time.time() - t0
+    t0   = time.time()
+    plan = PolyfitPlan(len(cofs) - 1, xv, wv)
+    fit  = plan.fit(yv)
+    dt   = time.time() - t0
     printfit(fit, xv, yv, dt, tag)
-
-def npfit(xv, yv, wv, D):
-    "numpy fit"
-    xv = np.array(xv)
-    yv = np.array(yv)
-    wv = np.array(wv)
-    xa = wv
-    xp = [xa]
-    for i in range(D * 2):
-        xa = xa * xv
-        xp.append(xa)
-    b = [ ]
-    for i in range(D):
-        b.append(np.dot(yv, xp[i]))
-    b  = np.array(b)
-    mx = [ ]
-    for v in xp:
-        mx.append(np.sum(v))
-    mx = np.array(mx)
-    a  = [ ]
-    for i in range(D):
-        a.append(mx[i:i+D])
-    a = np.array(a)
-    #print(np.linalg.cond(a))
-    L = np.linalg.cholesky(a)
-    y = np.linalg.solve(L, b)
-    cofs = list(np.linalg.solve(np.transpose(L), y))
-    return cofs
-
-def npfit(xv, yv, wv, D):
-    "numpy fit"
-    xv = np.array(xv)
-    yv = np.array(yv)
-    wv = np.array(wv)
-    xa = wv             ## accumulator
-    mx = [ ]            ## moments
-    b  = [ ]            ## rhs in ac=b
-    for i in range(D * 2):
-        if i < D:
-            b.append(np.dot(yv, xa))
-        mx.append(sum(xa))
-        xa = xa * xv
-    b  = np.array(b)
-    mx = np.array(mx)
-    ## build the normal matrix
-    a  = [ ]
-    for i in range(D):
-        a.append(mx[i:i+D])
-    a = np.array(a)
-    ## solve the normal equations
-    L = np.linalg.cholesky(a)
-    y = np.linalg.solve(L, b)
-    cofs = list(np.linalg.solve(np.transpose(L), y))
-    cofs.reverse()
-    return cofs
 
 def do_numpy(cofs, xv, wv=None):
     ## pylint: disable=too-many-locals
@@ -143,7 +90,7 @@ def do_numpy(cofs, xv, wv=None):
     else:
         tag = "custon weights"
     t0  = time.time()
-    fit = npfit(xv, yv, wv, D=len(cofs))
+    fit = npfit(xv, yv, wv, D=len(cofs) - 1)
     dt  = time.time() - t0
     tag = (": " + tag) if tag else ""
     print("numpy%s: dt %.4e" % (tag, dt))
@@ -177,7 +124,7 @@ def do_numpy(cofs, xv, wv=None):
 def do_both(cofs, xv, wv=None):
     "do polyfit and numpy"
     xv = array.array('d', xv)
-    #do_polyfit(cofs, xv, wv)
+    do_polyfit(cofs, xv, wv)
     do_numpy(cofs, xv, wv)
 
 print("#" * 72)
