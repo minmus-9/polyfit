@@ -88,7 +88,7 @@ extern int polyfit_coefs(
  * return the maximum fit degree
  *
  * on failure returns -1 and sets errno:
- *   EINVAL - plan is not a plan.
+ *   EINVAL - plan object is not recognized
  */
 extern int polyfit_maxdeg(
     const void * const plan
@@ -98,7 +98,7 @@ extern int polyfit_maxdeg(
  * return the number of fit points
  *
  * on failure returns -1 and sets errno:
- *   EINVAL - plan is not a plan.
+ *   EINVAL - plan object is not recognized
  */
 extern int polyfit_npoints(
     const void * const plan

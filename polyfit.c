@@ -710,7 +710,17 @@ int polyfit_coefs(
 int polyfit_npoints(const void * const plan_) {
     const plan_t * const plan = plan_;
 
-    return plan->N;
+    switch (plan->magic) {
+        case PLAN_MAGIC:
+            return plan->N;
+        case FIT_MAGIC:
+            return ((fit_t *) plan_)->plan->N;
+        case EVAL_MAGIC:
+            return ((eval_t *) plan_)->fit->plan->N;
+        default:
+            errno = EINVAL;
+            return -1;
+    }
 }
 /* }}} */
 /* {{{ polyfit_maxdeg */
@@ -718,7 +728,17 @@ int polyfit_npoints(const void * const plan_) {
 int polyfit_maxdeg(const void * const plan_) {
     const plan_t * const plan = plan_;
 
-    return plan->D;
+    switch (plan->magic) {
+        case PLAN_MAGIC:
+            return plan->D;
+        case FIT_MAGIC:
+            return ((fit_t *) plan_)->plan->D;
+        case EVAL_MAGIC:
+            return ((eval_t *) plan_)->fit->plan->D;
+        default:
+            errno = EINVAL;
+            return -1;
+    }
 }
 /* }}} */
 /* {{{ polyfit_resids */
