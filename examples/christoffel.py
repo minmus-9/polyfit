@@ -6,11 +6,16 @@ from __future__ import print_function as _
 
 ## pylint: disable=invalid-name,bad-whitespace
 
+import sys
 import time
+
+sys.path.insert(0, "..")    ## pylint: disable=wrong-import-position
 
 import polyfit as p
 
-def bis(func, a, fa, b, fb, tol=1e-16):
+def bis(    ## pylint: disable=too-many-arguments
+        func, a, fa, b, fb, tol=1e-16
+    ):
     "bisection root finder"
     assert p.to_float(p.mul(fa, fb)) < 0, (a, b, fa, fb)
     half = p.to_quad(0.5)
@@ -60,7 +65,7 @@ def _roots(plan, k, ret):
 def roots(plan, k, ret):
     r"return the roots of \phi_k"
     if k not in ret:
-        ret[k] = _roots(plan, k, ret) 
+        ret[k] = _roots(plan, k, ret)
     return ret[k]
 
 def allroots(plan):
@@ -110,25 +115,27 @@ def gauss_factory(plan):
     "return a factory to compute gaussian sums"
     Hs = christoffel(plan)
     def integrate(func, n):
+        "weighted sum of function using n points"
         return sum(H * func(x) for x, H in Hs[n])
     return Hs, integrate
 
 def demo():
     "demo code"
+    ## pylint: disable=too-many-locals
+
     def flist(l):
+        "format items as high-precision"
         return " ".join("%23.16e" % x for x in l)
 
     D    = 4
-    N    = 100
+    N    = 10000
     sc   = 1. #/ N
     xv   = [x * sc for x in range(N)]
     x0   = p.to_quad(min(xv))
     x1   = p.to_quad(max(xv))
-    xx   = [p.to_quad(x) for x in xv]
     wv   = [1. for _ in xv]
     t0   = time.time()
     plan = p.polyfit_plan(D, xv, wv)
-    g    = plan["g"]
     print("plan  %.2e" % (time.time() - t0))
 
     plan.update({
