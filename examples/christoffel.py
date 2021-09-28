@@ -49,9 +49,9 @@ def phi_k(x, k, plan):
         pj   = pjp1
     return pj
 
-def _roots(plan, k, ret):
+def _roots(plan, k, x0, x1, ret):
     r"recursively compute the roots of \phi_k"
-    ranges = [plan["x0"]] + roots(plan, k - 1, ret) + [plan["x1"]]
+    ranges = [x0] + roots(plan, k - 1, x0, x1, ret) + [x1]
     rl     = [ ]
     for i in range(len(ranges) - 1):
         f  = lambda x: phi_k(x, k, plan)
@@ -62,16 +62,18 @@ def _roots(plan, k, ret):
         rl.append(bis(f, a, fa, b, fb))
     return rl
 
-def roots(plan, k, ret):
+def roots(plan, k, x0, x1, ret):
     r"return the roots of \phi_k"
     if k not in ret:
-        ret[k] = _roots(plan, k, ret)
+        ret[k] = _roots(plan, k, x0, x1, ret)
     return ret[k]
 
 def allroots(plan):
     "return the roots of all of the phi_k keyed by k"
     ret = { 0: [ ] }
-    roots(plan, plan["D"], ret)
+    x0  = p.to_quad(min(plan["x"]))
+    x1  = p.to_quad(max(plan["x"]))
+    roots(plan, plan["D"], x0, x1, ret)
     return ret
 
 def _christoffel(plan, k, rl):
@@ -138,18 +140,13 @@ def demo():
     plan = p.polyfit_plan(D, xv, wv)
     print("plan  %.2e" % (time.time() - t0))
 
-    plan.update({
-        "x0": x0,
-        "x1": x1,
-    })
-
     def check(l, k):
         "check the slow vs gaussian summation results"
         f   = lambda x: x**k
         exp = sum(w * f(x) for w, x in zip(wv, xv))
         obs = gauss(f, l)
         #obs = sum(H * x**k for x, H in Hx)
-        print(k, flist((exp, obs, obs - exp)))
+        print(k, flist((exp, obs, obs - exp, abs(obs / exp - 1.))))
 
     t0 = time.time()
     Hs, gauss = gauss_factory(plan)
