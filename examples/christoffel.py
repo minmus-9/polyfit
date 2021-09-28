@@ -6,12 +6,15 @@ from __future__ import print_function as _
 
 ## pylint: disable=invalid-name,bad-whitespace
 
+import os
 import sys
 import time
 
 sys.path.insert(0, "..")    ## pylint: disable=wrong-import-position
 
 import polyfit as p
+
+sys.stdout = os.fdopen(1, "w", 1)
 
 def bis(    ## pylint: disable=too-many-arguments
         func, a, fa, b, fb, tol=1e-16
@@ -120,20 +123,32 @@ def gauss_factory(plan):
         "weighted sum of function using n points"
         v = [ ]
         for x, H in Hs[n]:
-            p.vappend(v, mul(H, func(x)))
+            p.vappend(v, p.mul(H, func(x)))
         return p.vectorsum(v)
-    return Hs, integrate
+    def fintegrate(func, n):
+        f = lambda x: p.to_quad(f(p.to_float(x)))
+        return p.to_float(integrate(f, n))
+    return Hs, integrate, fintegrate
 
 def demo():
     "demo code"
     ## pylint: disable=too-many-locals
 
-    def flist(l):
+    def flist(l, lf=False):
         "format items as high-precision"
-        return " ".join("%23.16e" % x for x in l)
+        f1 = "%23.16e"
+        f2 = "(%23.16e, %23.16e)"
+        ll = [ ]
+        s  = "\n  " if lf else " "
+        for x in l:
+            if isinstance(x, tuple):
+                ll.append("(%s, %s)" % (f2 % x[0], f2 % x[1]))
+            else:
+                ll.append(f1 % x)
+        return s + s.join(ll)
 
-    D    = 4
-    N    = 10000
+    D    = 8
+    N    = 100000
     sc   = 1. #/ N
     xv   = [x * sc for x in range(N)]
     x0   = p.to_quad(min(xv))
@@ -144,29 +159,31 @@ def demo():
     print("plan  %.2e" % (time.time() - t0))
 
     def xk(x, k):
-        x   = to_quad(x)
+        x   = p.to_quad(x)
         ret = p.one()
-        for _ in range(k):  ## yes, this can be a lot faster
+        for _ in range(k):
             ret = p.mul(ret, x)
         return ret
 
     def check(l, k):
         "check the slow vs gaussian summation results"
-        f   = lambda x: x**k
-        exp = sum(w * f(x) for w, x in zip(wv, xv))
-        obs = gauss(f, l)
-        #obs = sum(H * x**k for x, H in Hx)
+        f   = lambda x: xk(x, k)
+        v   = [ ]
+        for w, x in zip(wv, xv):
+            p.vappend(v, p.mul(p.to_quad(w), f(p.to_quad(x))))
+        exp = p.to_float(p.vectorsum(v))
+        obs = p.to_float(gauss(f, l))
         print(k, flist((exp, obs, obs - exp, abs(obs / exp - 1.))))
 
     t0 = time.time()
-    Hs, gauss = gauss_factory(plan)
+    Hs, gauss, fgauss = gauss_factory(plan)
     print("gauss %.2e" % (time.time() - t0))
 
     print()
     for l in range(1, D + 1):
         ## loop over gaussian summation order (#points)"
         print("order", l)
-        print("H", Hs[l])
+        print("H", flist(Hs[l], True))
         for k in range(2 * l):
             ## loop over x^k to show whether or not they agree
             check(l, k)
