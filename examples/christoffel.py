@@ -99,8 +99,8 @@ def _christoffel(plan, k, rl):
             p.vappend(v, u)
         ret.append(
             (
-                p.to_float(r),
-                p.to_float(p.div(p.one(), p.vectorsum(v)))
+                r,
+                p.div(p.one(), p.vectorsum(v))
             )
         )
     return ret
@@ -118,7 +118,10 @@ def gauss_factory(plan):
     Hs = christoffel(plan)
     def integrate(func, n):
         "weighted sum of function using n points"
-        return sum(H * func(x) for x, H in Hs[n])
+        v = [ ]
+        for x, H in Hs[n]:
+            p.vappend(v, mul(H, func(x)))
+        return p.vectorsum(v)
     return Hs, integrate
 
 def demo():
@@ -139,6 +142,13 @@ def demo():
     t0   = time.time()
     plan = p.polyfit_plan(D, xv, wv)
     print("plan  %.2e" % (time.time() - t0))
+
+    def xk(x, k):
+        x   = to_quad(x)
+        ret = p.one()
+        for _ in range(k):  ## yes, this can be a lot faster
+            ret = p.mul(ret, x)
+        return ret
 
     def check(l, k):
         "check the slow vs gaussian summation results"
