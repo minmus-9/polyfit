@@ -126,7 +126,7 @@ def gauss_factory(plan):
             p.vappend(v, p.mul(H, func(x)))
         return p.vectorsum(v)
     def fintegrate(func, n):
-        f = lambda x: p.to_quad(f(p.to_float(x)))
+        f = lambda x: p.to_quad(func(p.to_float(x)))
         return p.to_float(integrate(f, n))
     return Hs, integrate, fintegrate
 
@@ -148,11 +148,9 @@ def demo():
         return s + s.join(ll)
 
     D    = 8
-    N    = 100000
+    N    = 10000
     sc   = 1. #/ N
     xv   = [x * sc for x in range(N)]
-    x0   = p.to_quad(min(xv))
-    x1   = p.to_quad(max(xv))
     wv   = [1. for _ in xv]
     t0   = time.time()
     plan = p.polyfit_plan(D, xv, wv)
@@ -176,7 +174,7 @@ def demo():
         print(k, flist((exp, obs, obs - exp, abs(obs / exp - 1.))))
 
     t0 = time.time()
-    Hs, gauss, fgauss = gauss_factory(plan)
+    Hs, gauss, fgauss = gauss_factory(plan) ## pylint: disable=unused-variable
     print("gauss %.2e" % (time.time() - t0))
 
     print()

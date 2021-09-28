@@ -212,7 +212,7 @@ def polyfit_plan(maxdeg, xv, wv):
     return r
 ## }}}
 ## {{{ polyfit_fit
-def polyfit_ll_fit(plan, yv):
+def polyfit_qfit(plan, yv):
     """
     internal: compute the fit to yv[]
 
@@ -286,7 +286,7 @@ def polyfit_fit(plan, yv):
     polynomial, and coef_evaluator is a function to generate
     polynomial coefficients for the standard x_k basis.
     """
-    ll_fit = polyfit_ll_fit(plan, yv)
+    ll_fit = polyfit_qfit(plan, yv)
     ## get coefs, rms errors, and residuals
     e, rv = ll_fit["e"], ll_fit["r"]
     ## return residuals, rms errors by degree, a poly
@@ -376,7 +376,7 @@ def polyfit_eval(plan, a, x, deg=-1, nder=0):
     return r[0] if len(r) == 1 else r
 ## }}}
 ## {{{ polyfit_coefs
-def polyfit_coefs(plan, ll_fit, x0=0., deg=-1):
+def polyfit_qcoefs(plan, ll_fit, x0=0., deg=-1):
     """
     given a plan, a set of expansion coefficients generated
     by polyfit_fit, a center point x0, and a least squares
@@ -392,6 +392,17 @@ def polyfit_coefs(plan, ll_fit, x0=0., deg=-1):
         vals[j] = mul(vals[j], fac)
     ## get highest power first and convert to float
     vals.reverse()
+    return vals
+
+def polyfit_coefs(plan, ll_fit, x0=0., deg=-1):
+    """
+    given a plan, a set of expansion coefficients generated
+    by polyfit_fit, a center point x0, and a least squares
+    fit degree, return the coefficients of powers of (x - x0)
+    with the highest powers first. if deg is negative (the
+    default), use maxdeg instead.
+    """
+    vals = polyfit_qcoefs(plan, ll_fit, x0, deg)
     return [to_float(v) for v in vals]
 ## }}}
 ## {{{ polyfit_maxdeg and polyfit_npoints

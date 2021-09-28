@@ -22,6 +22,7 @@ def flist(l):
     return " ".join("%.18e" % x for x in l)
 
 def doit(xv, yv, wv, coefs):
+    "fit using polyfit and numpy"
     ## perform the fit
     D    = len(coefs) - 1
     plan = PolyfitPlan(D, xv, wv)
@@ -57,7 +58,6 @@ def demo():
     cv = [to_quad(c) for c in \
         [0, math.sqrt(2), math.exp(1), math.pi, 1]
     ]
-    D      = len(cv) - 1
     ceevee = [to_float(c) for c in cv]
 
     ## evaluate in quad-precision
