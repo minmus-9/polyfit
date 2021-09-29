@@ -14,24 +14,32 @@ import polyfit as p ## pylint: disable=wrong-import-position
 def make_integrator_factory(xv, yv, wv, D):
     "gaussian summation factory"
     plan = p.polyfit_plan(D, xv, wv)
-    fit  = p.polyfit_qfit(plan, yv)
+    fit  = p.polyfit_fit(plan, yv)
     def factory(deg):
         "return coefs and integrators"
+        ## gak. we have to use coefficients to compute
+        ## indefinite integrals...
         coefs = p.polyfit_qcoefs(plan, fit, x0=0., deg=deg)
         for j in range(deg, -1, -1):
             i = deg - j
             fac = p.div(p.one(), p.to_quad(j + 1))
             coefs[i] = p.mul(coefs[i], fac)
-        coefs.append(p.zero())
+        ## there is an implied zero constant term
+
         def integrate(x):
             "quad precision integrator"
+            x   = p.to_quad(x)
             ret = p.zero()
             for c in coefs:
                 ret = p.add(p.mul(ret, x), c)
+            ## take the implied zero constant term into acct
+            ret = p.mul(ret, x)
             return ret
+
         def integratef(x):
             "double precision integrator"
-            return p.to_float(integrate(p.to_quad(x)))
+            return p.to_float(integrate(x))
+
         return coefs, integrate, integratef
     return factory
 
@@ -44,7 +52,7 @@ def demo():
             r *= x
             r += c
         return r
-    D  = 2
+    D  = len(cv) - 1
     N  = 4
     sc = 1.
     xv = [x * sc for x in range(N)]
@@ -53,6 +61,8 @@ def demo():
 
     factory = make_integrator_factory(xv, yv, wv, D)
     coefs, integ, integf = factory(D)   ## pylint: disable=unused-variable
+    print(coefs)
+    ## should be [(1, 0), (1, 0), (1, 0)]
 
     print([integf(x) for x in xv])
     ## should be [0, 3, 14, 39]

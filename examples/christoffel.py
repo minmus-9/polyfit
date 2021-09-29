@@ -1,6 +1,29 @@
 #!/usr/bin/env python3
 
-"compute christoffel numbers from ortho polys"
+r"""
+compute christoffel numbers from ortho polys
+
+if you want to compute
+
+
+    sum(f(x_i) * w_i for x_i, w_i in zip(xv, wv))
+
+you can replace this with gaussian quadrature as
+
+    sum(f(z_i) * H_i for z_i, H_i in zip(Z, H))
+
+the difference is that D = len(Z) is much smaller
+than len(xv). Z and H are generated from a fit
+plan for xv and wv. this module provides a function
+to accurately integrate f().
+
+the quadrature formula is exact for polynomial
+functions f() up to degree 2D-1.
+
+for non-polynomial functions, the error is
+proportional to the 2D-th derivative of f()
+divided by (2D)!
+"""
 
 from __future__ import print_function as _
 
@@ -81,14 +104,14 @@ def allroots(plan):
 
 def _christoffel(plan, k, rl):
     r"""
-    compute the christoffel numbers for gaussian summation:
+    compute the christoffel numbers for gaussian quadrature:
 
     \sum_{k=1}^N w_k f(x_k) \approx \sum_{k=1}^D H_k f(r_k)
 
     r_k is the kth root of \phi_D
     H_k is the kth christoffel number
 
-    the D-point gaussian summation formula is exact for
+    the D-point gaussian quadrate formula is exact for
     polys f() up to degree 2D-1
     """
     rl  = rl[k]
@@ -117,16 +140,16 @@ def christoffel(plan):
     return ret
 
 def gauss_factory(plan):
-    "return a factory to compute gaussian sums"
+    "return a factory to compute gaussian quadrature"
     Hs = christoffel(plan)
     def integrate(func, n):
         "weighted sum of function using n points"
         v = [ ]
         for x, H in Hs[n]:
-            p.vappend(v, p.mul(H, func(x)))
+            p.vappend(v, p.mul(H, p.to_quad(func(x))))
         return p.vectorsum(v)
     def fintegrate(func, n):
-        f = lambda x: p.to_quad(func(p.to_float(x)))
+        f = lambda x: func(p.to_float(x))
         return p.to_float(integrate(f, n))
     return Hs, integrate, fintegrate
 
@@ -164,7 +187,7 @@ def demo():
         return ret
 
     def check(l, k):
-        "check the slow vs gaussian summation results"
+        "check the slow vs gaussian quadrature results"
         f   = lambda x: xk(x, k)
         v   = [ ]
         for w, x in zip(wv, xv):
@@ -179,11 +202,11 @@ def demo():
 
     print()
     for l in range(1, D + 1):
-        ## loop over gaussian summation order (#points)"
+        ## loop over gaussian quadrature order (#points)"
         print("order", l)
         print("H", flist(Hs[l], True))
         for k in range(2 * l):
-            ## loop over x^k to show whether or not they agree
+            ## loop over x^k and show whether or not they agree
             check(l, k)
         print()
 

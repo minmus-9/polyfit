@@ -231,14 +231,16 @@ class PolyfitEvaluator(object):
     def __init__(self, fit):
         self.eval = polyfit_evaluator(fit)
 
-    def __del__(self):
-        "deallocate on destruct"
+    def close(self):
+        "deallocate resources"
         p, self.eval = self.eval, None
         if p:
             try:
                 polyfit_free(p)
             except NameError:
                 pass
+
+    __del__ = close
 
     def __call__(self, x, deg=-1, nder=0):
         """
@@ -277,14 +279,16 @@ class PolyfitFit(object):
     def __init__(self, plan, yv):
         self.fit = polyfit_fit(plan, yv)
 
-    def __del__(self):
-        "deallocate on destruct"
+    def close(self):
+        "deallocate resources"
         p, self.fit = self.fit, None
         if p:
             try:
                 polyfit_free(p)
             except NameError:
                 pass
+
+    __del__ = close
 
     def evaluator(self):
         """
@@ -324,14 +328,16 @@ class PolyfitPlan(object):
         """
         self.plan = polyfit_plan(maxdeg, xv, wv)
 
-    def __del__(self):
-        "deallocate on destruct"
+    def close(self):
+        "deallocate resources"
         p, self.plan = self.plan, None
         if p:
             try:
                 polyfit_free(p)
             except NameError:
                 pass
+
+    __del__ = close
 
     def fit(self, yv):
         """

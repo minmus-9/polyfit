@@ -14,7 +14,11 @@ import math
 __all__ = [
     "PolyfitPlan", "PolyfitFit", "PolyfitEvaluator",
     "polyfit_plan", "polyfit_fit", "polyfit_eval",
-    "polyfit_coefs", "polyfit_maxdeg", "polyfit_npoints"
+    "polyfit_coefs", "polyfit_maxdeg", "polyfit_npoints",
+    "polyfit_qeval", "polyfit_qcoefs",
+
+    "zero", "one", "vappend", "vectorsum", "to_quad", "to_float",
+    "add", "sub", "mul", "div", "sqrt",
 ]
 ## }}}
 ## {{{ quad precision routines from ogita et al
@@ -75,47 +79,58 @@ def sumk(p, K):
     return sum2s(p)
 
 def vectorsum(vec):
-    "19n-13 flops, sumk() with K=3"
+    "accurately sum a vector of floats, 19n-13 flops"
     return sumk(vec, K=3)
 ## }}}
 ## {{{ utility functions
 def zero():
-    "yup"
+    "return quad precision 0"
     return (0., 0.)
 
 def one():
-    "yup"
+    "return quad precision 1"
     return (1., 0.)
 
 def vappend(vec, x):
-    "append quad to vector"
+    """
+    append quad precision number to vector. this is used
+    for vectorsum():
+
+        v = [ ]
+        for x in y:
+            quad = ...
+            vappend(v, quad)
+        s = vectorsum(v)
+
+    vectorsum() is more accurate than using add() in a loop.
+    """
     vec.extend(x)
 
 def to_quad(x):
-    "float to quad"
+    "convert float or quad to quad"
     return x if isinstance(x, tuple) else (float(x), 0.)
 
 def to_float(x):
-    "quad to float"
+    "convert quad to float"
     return x[0] if isinstance(x, tuple) else float(x)
 ## }}}
 ## {{{ quad precision arithmetic
 def add(x, y):
-    "14 flops"
+    "add two quads, 14 flops"
     x, xx = x
     y, yy = y
     z, zz = twosum(x, y)
     return twosum(z, zz + xx + yy)
 
 def sub(x, y):
-    "14 flops"
+    "subtract 2 quads, 14 flops"
     x, xx = x
     y, yy = y
     z, zz = twodiff(x, y)
     return twosum(z, zz + xx - yy)
 
 def mul(x, y):
-    "33 flops"
+    "multiply 2 quads, 33 flops"
     x, xx = x
     y, yy = y
     z, zz = twoproduct(x, y)
@@ -123,7 +138,7 @@ def mul(x, y):
     return twosum(z, zz)
 
 def div(x, y):
-    "36 flops, from dekker"
+    "divide 2 quads, 36 flops, from dekker"
     x, xx = x
     y, yy = y
     c     = x / y
@@ -132,7 +147,7 @@ def div(x, y):
     return twosum(c, cc)
 
 def sqrt(x):
-    "35 flops, from dekker"
+    "square root of a quad, 35 flops, from dekker"
     x, xx = x
     if not (x or xx):
         return zero()
@@ -149,10 +164,6 @@ def polyfit_plan(maxdeg, xv, wv):
     degree maxdeg.
 
     returns a plan object than can be json-serialized.
-
-    this is code for "compute everything need to calculate
-    an expansion in xv- and wv-specific orthogonal
-    polynomials".
     """
     ## pylint: disable=too-many-locals
 
@@ -169,9 +180,9 @@ def polyfit_plan(maxdeg, xv, wv):
         "N": N,         ## number of data points
         "b": b,         ## coefficients b_k
         "c": c,         ## coefficients c_k
-        "g": g,         ## normalization factors g_k
-        "x": xv,        ## x values, needed for actual fit
-        "w": wv         ## y values, needed for actual fit
+        "g": g,         ## normalization constants g_k
+        "x": xv,        ## x values, needed for polyfit_fit
+        "w": wv         ## y values, needed for polyfit_fit
     }
     ## \phi_{k-1} and \phi_k
     phi_km1 = [zero()] * N ## \phi_{-1}
@@ -212,10 +223,8 @@ def polyfit_plan(maxdeg, xv, wv):
     return r
 ## }}}
 ## {{{ polyfit_fit
-def polyfit_qfit(plan, yv):
+def polyfit_fit(plan, yv):
     """
-    internal: compute the fit to yv[]
-
     given a previously generated plan and a set of y values
     in yv[], compute all least squares fits to yv[] up to
     degree maxdeg.
@@ -272,38 +281,26 @@ def polyfit_qfit(plan, yv):
         "e": e,     ## per-degree rms errors
         "r": rv     ## per-point residuals
     }
-
-def polyfit_fit(plan, yv):
-    """
-    given a previously generated plan and a set of y values
-    in yv[], compute all least squares fits to yv[] up to
-    degree maxdeg.
-
-    returns (resids, rms_errors, evaluator, coef_evaluator)
-    where resids are the fit residuals at each point,
-    rms_errors is a vector of rms fit errors for each possible
-    degree, evaluator is a function to evaluate the fit
-    polynomial, and coef_evaluator is a function to generate
-    polynomial coefficients for the standard x_k basis.
-    """
-    ll_fit = polyfit_qfit(plan, yv)
-    ## get coefs, rms errors, and residuals
-    e, rv = ll_fit["e"], ll_fit["r"]
-    ## return residuals, rms errors by degree, a poly
-    ## evaluator, and a coef evaluator
-    return (
-        [to_float(res) for res in rv],
-        [to_float(err) for err in e],
-        (lambda x, deg=-1, nder=0: \
-            polyfit_eval(plan, ll_fit, x, deg, nder)),
-        (lambda x, deg=-1: \
-            polyfit_coefs(plan, ll_fit, x, deg))
-    )
 ## }}}
 ## {{{ polyfit_eval
-def _polyfit_eval_(plan, ll_fit, x, deg=-1, nder=0):
+def polyfit_qeval(plan, ll_fit, x, deg=-1, nder=0):
     """
-    internal: polyfit_eval in quad precision.
+    given a plan, a fit data object returned by
+    polyfit_fit, a point x, a least squares fit degree deg,
+    and a desired number of derivatives to compute nder,
+    calculate and return the value of the polynomial and
+    any requested derivatives.
+
+    if deg is negative, use maxdeg instead. if nder is
+    negative, use the final value of deg; otherwise, compute
+    ndeg derivatives of the least squares polynomial of
+    degree deg.
+
+    returns a list of quads whose first element is the value
+    of the least squares polynomial of degree deg at x.
+    subsequent elements are the requested derivatives. if zero
+    derivatives are requested, the scalar quad function value
+    is returned.
     """
     ## pylint: disable=too-many-locals
     b, c, D = plan["b"], plan["c"], plan["D"]
@@ -350,7 +347,7 @@ def _polyfit_eval_(plan, ll_fit, x, deg=-1, nder=0):
     ## returns quad precision (for polyfit_coefs)
     return ret
 
-def polyfit_eval(plan, a, x, deg=-1, nder=0):
+def polyfit_eval(plan, fit, x, deg=-1, nder=0):
     """
     given a plan, a fit data object returned by
     polyfit_fit, a point x, a least squares fit degree deg,
@@ -370,7 +367,7 @@ def polyfit_eval(plan, a, x, deg=-1, nder=0):
     returned.
     """
     ## get float values
-    r = _polyfit_eval_(plan, a, x, deg, nder)
+    r = polyfit_qeval(plan, fit, x, deg, nder)
     r = [to_float(v) for v in r]
     ## return scalar if no derivs
     return r[0] if len(r) == 1 else r
@@ -382,15 +379,16 @@ def polyfit_qcoefs(plan, ll_fit, x0=0., deg=-1):
     by polyfit_fit, a center point x0, and a least squares
     fit degree, return the coefficients of powers of (x - x0)
     with the highest powers first. if deg is negative (the
-    default), use maxdeg instead.
+    default), use maxdeg instead. the coefficients are quad
+    precision.
     """
     ## get value and derivs, divide by j!
-    vals = _polyfit_eval_(plan, ll_fit, x0, deg, deg)
+    vals = polyfit_qeval(plan, ll_fit, x0, deg, deg)
     fac  = one()
     for j in range(2, len(vals)):
         fac     = div(fac, to_quad(j))
         vals[j] = mul(vals[j], fac)
-    ## get highest power first and convert to float
+    ## get highest power first
     vals.reverse()
     return vals
 
@@ -405,25 +403,33 @@ def polyfit_coefs(plan, ll_fit, x0=0., deg=-1):
     vals = polyfit_qcoefs(plan, ll_fit, x0, deg)
     return [to_float(v) for v in vals]
 ## }}}
-## {{{ polyfit_maxdeg and polyfit_npoints
+## {{{ polyfit_maxdeg
 def polyfit_maxdeg(plan):
     "return the maximum possible fit degree"
     return plan["D"]
-
+## }}}
+## {{{ polyfit_npoints
 def polyfit_npoints(plan):
     "return the number of data points being fit"
     return plan["N"]
 ## }}}
 ## {{{ Polyfit classes
-class PolyfitEvaluator(object):
+class PolyfitBase(object):
+    "base class for polyfit classes"
+    ## pylint: disable=too-few-public-methods
+
+    def close(self):
+        "deallocate resources, a no-op for this impementation"
+
+class PolyfitEvaluator(PolyfitBase):
     """
     returned by PolyfitFit.evaluator(). this object evaluates
     the fit polynomial and its derivatives, and also returns
     its coefficients in powers of (x - x0) for given x0.
     """
 
-    def __init__(self, doeval, docofs):
-        self.eval, self.cofs = doeval, docofs
+    def __init__(self, plan, fit):
+        self.plan, self.fit = plan, fit
 
     def __call__(self, x, deg=-1, nder=0):
         """
@@ -443,7 +449,7 @@ class PolyfitEvaluator(object):
         derivatives are requested, the scalar function value is
         returned.
         """
-        return self.eval(x, deg, nder)
+        return polyfit_eval(self.plan, self.fit, x, deg, nder)
 
     def coefs(self, x0, deg=-1):
         """
@@ -451,22 +457,24 @@ class PolyfitEvaluator(object):
         deg about (x - x0). if deg is negative, use maxdeg
         instead.
         """
-        return self.cofs(x0, deg)
+        return polyfit_coefs(self.plan, self.fit, x0, deg)
 
-class PolyfitFit(object):
+class PolyfitFit(PolyfitBase):
     """
     orthogonal polynomial fitter returned by PolyfitPlan.fit()
     """
 
     def __init__(self, plan, yv):
-        self.res, self.rms, self.eval, self.cofs = \
-            polyfit_fit(plan, yv)
+        self.plan = plan
+        self.fit  = fit = polyfit_fit(plan, yv)
+        self.res  = [to_float(r) for r in fit["r"]]
+        self.rms  = [to_float(e) for e in fit["e"]]
 
     def evaluator(self):
         """
         return a PolyfitEvaluator for this fit.
         """
-        return PolyfitEvaluator(self.eval, self.cofs)
+        return PolyfitEvaluator(self.plan, self.fit)
 
     def residuals(self):
         """
@@ -481,7 +489,7 @@ class PolyfitFit(object):
         """
         return self.rms
 
-class PolyfitPlan(object):
+class PolyfitPlan(PolyfitBase):
     """
     orthogonal polynomial least squares planning class. you must
     create one of these prior to fitting; it can be reused for
