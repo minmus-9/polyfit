@@ -3,7 +3,7 @@
 "quad precision orthogonal polynomial least squares fitting"
 
 ## {{{ prologue
-from __future__ import print_function
+from __future__ import print_function as _
 
 ## pylint: disable=invalid-name,bad-whitespace
 ## pylint: disable=useless-object-inheritance
@@ -17,8 +17,8 @@ __all__ = [
     "polyfit_coefs", "polyfit_maxdeg", "polyfit_npoints",
     "polyfit_qeval", "polyfit_qcoefs",
 
-    "zero", "one", "vappend", "vectorsum", "to_quad", "to_float",
-    "add", "sub", "mul", "div", "sqrt",
+    "zero", "one", "vappend", "vectorsum", "to_quad",
+    "to_float", "add", "sub", "mul", "div", "sqrt",
 ]
 ## }}}
 ## {{{ quad precision routines from ogita et al
@@ -75,8 +75,7 @@ def sumkcore(p, K):
 
 def sumk(p, K):
     "(6K+1)(n-1)+6 flops, algorithm 4.8 from ogita"
-    p = sumkcore(p, K)
-    return sum2s(p)
+    return sum2s(sumkcore(p, K))
 
 def vectorsum(vec):
     "accurately sum a vector of floats, 19n-13 flops"
@@ -171,11 +170,11 @@ def polyfit_plan(maxdeg, xv, wv):
     xv = [to_quad(x) for x in xv]
     wv = [to_quad(w) for w in wv]
     ## build workspaces and result object
-    N  = len(xv)
-    b  = [ ]            ## recurrence coefs b_k
-    c  = [ ]            ## recurrence coefs c_k
-    g  = [one()]        ## \gamma_k^2 \equiv (\phi_k, \phi_k)
-    r  = {
+    N = len(xv)
+    b = [ ]             ## recurrence coefs b_k
+    c = [ ]             ## recurrence coefs c_k
+    g = [one()]         ## \gamma_k^2 \equiv (\phi_k, \phi_k)
+    r = {
         "D": maxdeg,    ## max fit degree
         "N": N,         ## number of data points
         "b": b,         ## coefficients b_k
@@ -207,18 +206,17 @@ def polyfit_plan(maxdeg, xv, wv):
         c.append(ck)
         ## if we aren't done, update pk[] and pkm1[]
         ## for the next round
-        if k == maxdeg:
-            break
-        for i in range(N):
-            ## \phi_{k+1}(x_i) = (x_i - b_k) \phi_k(x_i) -
-            ##                     c_k \phi_{k-1}(x_i)
-            phi_kp1 = sub(
-                mul(sub(xv[i], bk), phi_k[i]),
-                mul(ck, phi_km1[i])
-            )
-            ## rotate the polys
-            phi_km1[i] = phi_k[i]
-            phi_k[i]   = phi_kp1
+        if k != maxdeg:
+            for i in range(N):
+                ## \phi_{k+1}(x_i) = (x_i - b_k) \phi_k(x_i) -
+                ##                     c_k \phi_{k-1}(x_i)
+                phi_kp1 = sub(
+                    mul(sub(xv[i], bk), phi_k[i]),
+                    mul(ck, phi_km1[i])
+                )
+                ## rotate the polys
+                phi_km1[i] = phi_k[i]
+                phi_k[i]   = phi_kp1
     c.append(zero())    ## needed in polyfit_eval
     return r
 ## }}}
@@ -263,18 +261,17 @@ def polyfit_fit(plan, yv):
 
         ## if we aren't done, update pk[] and pkm1[]
         ## for the next round
-        if k == D:
-            break
-        for i in range(N):
-            ## \phi_{k+1}(x_i) = (x_i - b_k) \phi_k(x_i) -
-            ##                     c_k \phi_{k-1}(x_i)
-            phi_kp1 = sub(
-                mul(sub(xv[i], b[k]), phi_k[i]),
-                mul(c[k], phi_km1[i])
-            )
-            ## rotate the polys
-            phi_km1[i] = phi_k[i]
-            phi_k[i]   = phi_kp1
+        if k != D:
+            for i in range(N):
+                ## \phi_{k+1}(x_i) = (x_i - b_k) \phi_k(x_i) -
+                ##                     c_k \phi_{k-1}(x_i)
+                phi_kp1 = sub(
+                    mul(sub(xv[i], b[k]), phi_k[i]),
+                    mul(c[k], phi_km1[i])
+                )
+                ## rotate the polys
+                phi_km1[i] = phi_k[i]
+                phi_k[i]   = phi_kp1
     ## return fit data
     return {
         "a": a,     ## orthogonal poly coefs
@@ -303,8 +300,7 @@ def polyfit_qeval(plan, ll_fit, x, deg=-1, nder=0):
     is returned.
     """
     ## pylint: disable=too-many-locals
-    b, c, D = plan["b"], plan["c"], plan["D"]
-    a = ll_fit["a"]
+    a, b, c, D = ll_fit["a"], plan["b"], plan["c"], plan["D"]
 
     if deg < 0:
         deg = D
@@ -316,6 +312,7 @@ def polyfit_qeval(plan, ll_fit, x, deg=-1, nder=0):
     zj   = [zero()] * (deg + 3)
 
     fac  = one()            ## j! factor
+    zeds = [zero(), zero()]
     lim  = min(deg, nder)   ## max degree to compute
     x    = to_quad(x)
     ret  = [ ]              ## return value
@@ -328,7 +325,7 @@ def polyfit_qeval(plan, ll_fit, x, deg=-1, nder=0):
             ## z_k^{(j)} = z_k^{(j-1)} +
             ##              (x - b_t) z_{k+1}^{(j)} -
             ##              c_{t+1} z_{k+2}^{(j)}
-            tmp   = sub(
+            tmp = sub(
                 mul(sub(x, b[t]), zj[k + 1]),
                 mul(c[t + 1], zj[k + 2])
             )
@@ -336,12 +333,11 @@ def polyfit_qeval(plan, ll_fit, x, deg=-1, nder=0):
         ## save j! z_j^{(j)}
         ret.append(mul(fac, zj[j]))
         ## update z if we aren't done
-        if j == lim:
-            break
-        ## update zjm1
-        zjm1[:] = zj
-        ## zj only needs last 2 elements cleared
-        zj[-2:] = [zero(), zero()]
+        if j != lim:
+            ## update zjm1
+            zjm1[:] = zj
+            ## zj only needs last 2 elements cleared
+            zj[-2:] = zeds
     if nder > deg:
         ret += [zero()] * (nder - deg)
     ## returns quad precision (for polyfit_coefs)
@@ -459,6 +455,10 @@ class PolyfitEvaluator(PolyfitBase):
         """
         return polyfit_coefs(self.plan, self.fit, x0, deg)
 
+    def qcoefs(self, x0, deg=-1):
+        "like coefs() but return quad-precision ones"
+        return polyfit_qcoefs(self.plan, self.fit, x0, deg)
+
 class PolyfitFit(PolyfitBase):
     """
     orthogonal polynomial fitter returned by PolyfitPlan.fit()
@@ -515,6 +515,12 @@ class PolyfitPlan(PolyfitBase):
         a PolyfitFit object.
         """
         return PolyfitFit(self.plan, yv)
+
+    def ll_plan(self):
+        """
+        return the low-level plan created by polyfit_plan()
+        """
+        return self.plan
 
     def maxdeg(self):
         "return the maximum fit degree"
