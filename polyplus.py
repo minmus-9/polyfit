@@ -70,9 +70,14 @@ class PolyplusIntegrator(object):
 ## {{{ quad precision root finding using bisection
 def bis(    ## pylint: disable=too-many-arguments
         func, a, fa, b, fb,
-        maxiter=105,        ## quad-precision roundoff
+        maxiter=108,    ## rel err >= 2**-107
     ):
-    "quad precision root finding using bisection"
+    """
+    quad precision root finding using bisection
+    """
+    ## this is over the top but works for its use
+    ## in this module; don't use this for general
+    ## root finding!
     assert to_float(mul(fa, fb)) < 0
     half = to_quad(0.5)
     for _ in range(maxiter):
@@ -108,10 +113,10 @@ class PolyplusQuadrature(object):
     def phi_k(self, x, k):
         "compute the k-th orthogonal poly at x"
         x    = to_quad(x)
-        pjm1 = zero()
-        pj   = one()
         b    = self.b
         c    = self.c
+        pjm1 = zero()
+        pj   = one()
         for j in range(k):
             pjp1 = sub(
                 mul(sub(x, b[j]), pj),
@@ -176,17 +181,28 @@ class PolyplusQuadrature(object):
         compute the quadrature scheme of order k using the
         christoffel-darboux identity
         """
+        b   = self.b
+        c   = self.c
         g   = self.g
         uno = one()
         ret = [ ]
         for r in self.roots(k):
-            v = [ ]
+            v    = [ ]
+            pjm1 = zero()
+            pj   = one()
+            ## loop over polys
             for j in range(k):
-                ## XXX this could be sped up by inlining the
-                ## XXX phi_k recurrence here...
-                pj = self.phi_k(r, j)
-                u  = div(mul(pj, pj), g[j + 1])
+                ## add in the next term
+                u = div(mul(pj, pj), g[j + 1])
                 vappend(v, u)
+                ## compute the next poly
+                pjp1 = sub(
+                    mul(sub(r, b[j]), pj),
+                    mul(c[j], pjm1)
+                )
+                pjm1 = pj
+                pj   = pjp1
+            ## save the root and christoffel number
             ret.append(
                 (r, div(uno, vectorsum(v)))
             )
