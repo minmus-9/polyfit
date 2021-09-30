@@ -16,10 +16,10 @@ from polyfit import (   ## pylint: disable=wrong-import-position,wrong-import-or
 )
 
 def flist(l):
-    "format a list to 18 decimal places"
+    "format a list to 15 decimal places"
     if not isinstance(l, list):
         l = [l]
-    return " ".join("%.18e" % x for x in l)
+    return " ".join("%.15e" % x for x in l)
 
 def doit(xv, yv, wv, coefs):
     "fit using polyfit and numpy"

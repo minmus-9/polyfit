@@ -92,7 +92,7 @@ int main(int argc, char *argv[]) {
     }
     printf("erms  ");
     for (i = 0; i <= D; i++) {
-        printf(" %.18e", t[i]);
+        printf(" %.15e", t[i]);
     }
     printf("\n");
 
@@ -104,7 +104,7 @@ int main(int argc, char *argv[]) {
         }
         printf("value  %.1f", xv[i]);
         for (j = 0; j <= D; j++) {
-            printf(" %.18e", d[j]);
+            printf(" %.15e", d[j]);
         }
         printf("\n");
     }
@@ -117,7 +117,7 @@ int main(int argc, char *argv[]) {
         }
         printf("deg    %d", i);
         for (j = 0; j <= i; j++) {
-            printf(" %.18e", d[j]);
+            printf(" %.15e", d[j]);
         }
         printf("\n");
     }
@@ -130,7 +130,7 @@ int main(int argc, char *argv[]) {
         }
         printf("coefs  %d", i);
         for (j = 0; j <= i; j++) {
-            printf(" %.18e", coefs[j]);
+            printf(" %.15e", coefs[j]);
         }
         printf("\n");
     }
@@ -142,7 +142,7 @@ int main(int argc, char *argv[]) {
     }
     printf("coefs ");
     for (i = 0; i <= D; i++) {
-        printf(" %.18e", coefs[i]);
+        printf(" %.15e", coefs[i]);
     }
     printf("\n");
 

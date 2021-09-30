@@ -15,10 +15,10 @@ from polyfit import PolyfitPlan \
     ## pylint: disable=wrong-import-order,wrong-import-position
 
 def flist(l):
-    "format a list to 18 decimal places"
+    "format a list to 15 decimal places"
     if not isinstance(l, list):
         l = [l]
-    return " ".join("%.18e" % x for x in l)
+    return " ".join("%.15e" % x for x in l)
 
 def demo():
     "compute rel err in poly coefs"
