@@ -4,18 +4,19 @@ integrals and gaussian quadrature add-ons for polyfit.py
 
 from __future__ import print_function as _
 
-## pylint: disable=invalid-name,bad-whitespace,useless-object-inheritance
+## pylint: disable=invalid-name,bad-whitespace
 
 from polyfit import (
     zero, one, to_quad, to_float,
     add, sub, div, mul,
-    vappend, vectorsum
+    vappend, vectorsum,
+    PolyfitBase
 )
 
 __all__ = ["PolyplusIntegrator", "PolyplusQuadrature"]
 
 ## {{{ integration
-class PolyplusIntegrator(object):
+class PolyplusIntegrator(PolyfitBase):
     """
     this class computes the definite integral of a fitted
     polynomial. be careful: we have to compute coefficients
@@ -28,6 +29,7 @@ class PolyplusIntegrator(object):
         create an integrator from a fit polynomial of given
         degree.
         """
+        self.data   = fit
         self._coefs = coefs = fit.evaluator().coefs(zero(), deg)
         deg = len(coefs) - 1
         uno = one()
@@ -90,11 +92,35 @@ def bis(    ## pylint: disable=too-many-arguments
     return c
 ## }}}
 ## {{{ quadrature over wv[] and xv[]
-class PolyplusQuadrature(object):
-    "compute the roots of the orthogonal polynomials"
+class PolyplusQuadrature(PolyfitBase):
+    """
+    this class implements gaussian quadrature on a
+    discrete set of points.
+
+    if you want to compute
+
+        sum(f(x_i) * w_i for x_i, w_i in zip(xv, wv))
+
+    you can replace this with gaussian quadrature as
+
+        sum(f(z_i) * H_i for z_i, H_i in zip(Z, H))
+
+    the difference is that D = len(Z) is much smaller
+    than len(xv). Z and H are generated from a fit
+    plan for xv and wv. this module provides a function
+    to accurately sum f().
+
+    the quadrature formula is exact for polynomial
+    functions f() up to degree 2D-1.
+
+    for non-polynomial functions, the error is
+    proportional to the 2D-th derivative of f()
+    divided by (2D)!
+    """
 
     def __init__(self, plan):
         "init self from a plan"
+        self.data = plan
         p = plan.to_data()["plan"]
         self.b, self.c, self.g = p["b"], p["c"], p["g"]
 
@@ -104,28 +130,12 @@ class PolyplusQuadrature(object):
         self.the_roots   = { 0: [ ] }
         self.the_schemes = { }
 
-    def phi_k(self, x, k):
-        "compute the k-th orthogonal poly at x"
-        x    = to_quad(x)
-        b    = self.b
-        c    = self.c
-        pjm1 = zero()
-        pj   = one()
-        for j in range(k):
-            pjp1 = sub(
-                mul(sub(x, b[j]), pj),
-                mul(c[j], pjm1)
-            )
-            pjm1 = pj
-            pj   = pjp1
-        return pj
-
     def __call__(self, func, deg):
         r"""
         compute \sum_{i=1}^N w_i func(x_i) using the quadrature
         scheme \sum_{i=0}^{deg} H_i func(z_i). this is exact if
         func() is a poly of degree < 2D. func is assumed to take
-        a float argument.
+        and return a float.
         """
         f = lambda x: func(to_float(x))
         return to_float(self.qquad(f, deg))
@@ -135,7 +145,7 @@ class PolyplusQuadrature(object):
         compute \sum_{i=1}^N w_i func(x_i) using the quadrature
         scheme \sum_{i=0}^{deg} H_i func(z_i). this is exact if
         func() is a poly of degree < 2D. func is assumed to take
-        a quad argument.
+        and return a quad.
         """
         v = [ ]
         for z, H in self.scheme(deg):
@@ -157,11 +167,32 @@ class PolyplusQuadrature(object):
             self.the_schemes[k] = self._scheme(k)
         return self.the_schemes[k]
 
+    def _phi_k(self, x, k):
+        "internal: compute the k-th orthogonal poly at x"
+        x    = to_quad(x)
+        b    = self.b
+        c    = self.c
+        pjm1 = zero()
+        pj   = one()
+        for j in range(k):
+            pjp1 = sub(
+                mul(sub(x, b[j]), pj),
+                mul(c[j], pjm1)
+            )
+            pjm1 = pj
+            pj   = pjp1
+        return pj
+
     def _roots(self, k):
-        "compute the roots using the separation property"
+        r"""
+        internal:
+
+        compute the roots of \phi_k using the separation
+        property
+        """
         ranges = [self.x0] + self.roots(k - 1) + [self.x1]
         ret    = [ ]
-        func   = lambda x: self.phi_k(x, k)
+        func   = lambda x: self._phi_k(x, k)
         for i in range(len(ranges) - 1):
             a  = ranges[i]
             fa = func(a)
@@ -172,6 +203,8 @@ class PolyplusQuadrature(object):
 
     def _scheme(self, k):
         """
+        internal:
+
         compute the quadrature scheme of order k using the
         christoffel-darboux identity
         """
