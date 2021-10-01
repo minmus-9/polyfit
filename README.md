@@ -9,7 +9,7 @@ fitting using orthogonal polynomials. Pure Python and C
 versions are provided; they are slower than the traditional
 approach (primarily due to being quad-precision), but are
 numerically more stable and accurate than the traditional
-approach. A listing of the source code for the 250 SLOC
+approach. A listing of the source code for the 260 SLOC
 Python reference implementation is included in appendix. A
 much faster C version also ships with this package; there
 is a Python ctypes-based interface called cpolyfit that
