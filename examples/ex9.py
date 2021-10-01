@@ -16,7 +16,7 @@ from polyfit import (   ## pylint: disable=wrong-import-position
 
 def flist(l):
     "format a list to 15 decimal places"
-    if not isinstance(l, list):
+    if not isinstance(l, (list, tuple)):
         l = [l]
     return " ".join("%.15e" % x for x in l)
 
@@ -65,18 +65,25 @@ def demo():
 
     ## print a few values
     for i in range(4):
-        print("value  %.1f %s" % (to_float(xv[i]), flist(ev(xv[i], nder=-1))))
+        print("value  %.1f %s" % \
+            (to_float(xv[i]), flist(ev(to_float(xv[i]), nder=-1)))
+        )
 
     ## print value and all derivatives for all degrees
     for i in range(D + 1):
-        print("deg    %d %s" % (i, flist(ev(xv[0], deg=i, nder=-1))))
+        print("deg    %d %s" % \
+            (i, flist(ev(to_float(to_float(xv[0])), deg=i, nder=-1)))
+        )
 
     ## print coefficients for all degrees about (x - xv[0])
     for i in range(D + 1):
-        print("coefs  %d %s" % (i, flist(ev.coefs(xv[0], i))))
+        print("coefs  %d %s" % (i, flist(ev.coefs(to_float(xv[0]), i))))
 
     ## coefs halfway through
-    print("coefs ", flist(ev.coefs(xv[N >> 1], deg)))
+    print()
+    print("value ", flist(ev(xv[N>>1])))
+    print("exp   ", flist(yv[N>>1]))
+    print("coefs ", flist(ev.coefs(to_float(xv[N >> 1]), deg)))
 
 if __name__ == "__main__":
     demo()

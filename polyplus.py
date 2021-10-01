@@ -28,7 +28,7 @@ class PolyplusIntegrator(object):
         create an integrator from a fit polynomial of given
         degree.
         """
-        self._coefs = coefs = fit.evaluator().qcoefs(0., deg)
+        self._coefs = coefs = fit.evaluator().coefs(zero(), deg)
         deg = len(coefs) - 1
         uno = one()
         for j in range(deg, -1, -1):
@@ -48,24 +48,18 @@ class PolyplusIntegrator(object):
         "same as qcoefs, but in double precision"
         return [to_float(c) for c in self.qcoefs()]
 
-    def qintegral(self, x):
-        """
-        return the quad-precision definite integral from 0 to x.
-        """
-        x   = to_quad(x)
-        ret = zero()
-        for c in self._coefs:
-            ret = add(mul(ret, x), c)
-        ## handle the implied zero constant term
-        ret = mul(ret, x)
-        return ret
-
     def __call__(self, x):
         """
-        return the double precision definite integral from 0
-        to x.
+        return the quad-precision definite integral from 0 to x.
+        the return value is quad if x is quad.
         """
-        return to_float(self.qintegral(x))
+        q   = to_quad(x)
+        ret = zero()
+        for c in self._coefs:
+            ret = add(mul(ret, q), c)
+        ## handle the implied zero constant term
+        ret = mul(ret, q)
+        return ret if isinstance(x, tuple) else to_float(ret)
 ## }}}
 ## {{{ quad precision root finding using bisection
 def bis(    ## pylint: disable=too-many-arguments
@@ -101,7 +95,7 @@ class PolyplusQuadrature(object):
 
     def __init__(self, plan):
         "init self from a plan"
-        p = plan.ll_plan()
+        p = plan.to_data()["plan"]
         self.b, self.c, self.g = p["b"], p["c"], p["g"]
 
         x0, x1 = min(p["x"]), max(p["x"])

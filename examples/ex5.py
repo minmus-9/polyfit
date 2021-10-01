@@ -37,7 +37,7 @@ def demo():
         return r
 
     ## define the x and y values for the fit
-    N  = 100000
+    N  = 10000
     xv = [x for x in range(N)]
     yv = [pv(x) for x in xv]
 
