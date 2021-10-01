@@ -1,5 +1,7 @@
 "numpy fit using quad-precision setup"
 
+from __future__ import print_function as _
+
 ## pylint: disable=invalid-name,bad-whitespace
 
 import math
@@ -14,6 +16,7 @@ from polyfit import (   ## pylint: disable=wrong-import-position
 
 def npfit(xv, yv, wv, D):
     "numpy fit, quad-precision setup"
+    ## pylint: disable=too-many-locals
     xv = [to_quad(x) for x in xv]
     yv = [to_quad(y) for y in yv]
     wv = [to_quad(w) for w in wv]
@@ -52,6 +55,7 @@ def demo():
     ## pylint: disable=unnecessary-comprehension
     cv = [2, 1, -1, math.pi]
     def pv(x):
+        "evaluate the model poly"
         r = 0.
         for c in cv:
             r *= x

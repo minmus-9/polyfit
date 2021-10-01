@@ -2,6 +2,8 @@
 
 "example usage of the polyfit api"
 
+from __future__ import print_function as _
+
 ## pylint: disable=invalid-name,bad-whitespace
 
 import math
@@ -9,8 +11,7 @@ import sys
 
 sys.path.insert(0, "..")
 
-from polyfit import PolyfitPlan \
-    ## pylint: disable=wrong-import-position
+from polyfit import PolyfitPlan ## pylint: disable=wrong-import-position
 
 def flist(l):
     "format a list to 15 decimal places"

@@ -2,6 +2,8 @@
 
 "example usage of the polyfit api"
 
+from __future__ import print_function as _
+
 ## pylint: disable=invalid-name,bad-whitespace
 
 import math
@@ -56,8 +58,8 @@ def demo():
 
     ## poly coefficients to fit, highest degree first
     cv = [to_quad(c) for c in \
-        [0, math.sqrt(2), math.exp(1), math.pi, 1]
-    ]
+            [0, math.sqrt(2), math.exp(1), math.pi, 1]
+         ]
     ceevee = [to_float(c) for c in cv]
 
     ## evaluate in quad-precision

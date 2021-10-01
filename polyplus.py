@@ -76,10 +76,10 @@ def bis(    ## pylint: disable=too-many-arguments
     half = to_quad(0.5)
     for _ in range(maxiter):
         c = mul(half, add(a, b))
-        if c == a or c == b:
+        if c in (a, b):
             break
         fc = func(c)
-        if fc == fa or fc == fb:
+        if fc in (fa, fb):
             break
         if to_float(mul(fa, fc)) < 0:
             b, fb = c, fc

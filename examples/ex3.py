@@ -100,6 +100,7 @@ def do_numpy(cofs, xv, wv=None):
     ceval = cofs[:]
     ceval.reverse()
     def pv(x):
+        "evaluate the model poly"
         r = 0.
         for c in ceval:
             r *= x
@@ -127,50 +128,56 @@ def do_both(cofs, xv, wv=None):
     do_polyfit(cofs, xv, wv)
     do_numpy(cofs, xv, wv)
 
-print("#" * 72)
-print("UNSCALED-X EQUAL WEIGHT CUBIC FIT")
-do_both([2, 1, -1, math.pi], range(100000), "equal")
+def go():
+    "run the tests"
+    print("#" * 72)
+    print("UNSCALED-X EQUAL WEIGHT CUBIC FIT")
+    do_both([2, 1, -1, math.pi], range(100000), "equal")
 
-print("#" * 72)
-print("SCALED-X EQUAL WEIGHT CUBIC FIT")
-do_both([2, 1, -1, math.pi], [x * 1e-5 for x in range(100000)], "equal")
+    print("#" * 72)
+    print("SCALED-X EQUAL WEIGHT CUBIC FIT")
+    do_both([2, 1, -1, math.pi], [x * 1e-5 for x in range(100000)], "equal")
 
-print("#" * 72)
-print("UNSCALED-X EQUAL WEIGHT QUARTIC FIT")
-do_both([0, 2, 1, -1, math.pi], range(100000), "equal")
+    print("#" * 72)
+    print("UNSCALED-X EQUAL WEIGHT QUARTIC FIT")
+    do_both([0, 2, 1, -1, math.pi], range(100000), "equal")
 
-print("#" * 72)
-print("SCALED-X EQUAL WEIGHT QUARTIC FIT")
-do_both([0, 2, 1, -1, math.pi], [x * 1e-5 for x in range(100000)], "equal")
+    print("#" * 72)
+    print("SCALED-X EQUAL WEIGHT QUARTIC FIT")
+    do_both([0, 2, 1, -1, math.pi], [x * 1e-5 for x in range(100000)], "equal")
 
-print("#" * 72)
-print("UNSCALED-X RELATIVE WEIGHT CUBIC FIT")
-do_both([2, 1, -1, math.pi], range(100000), "minrel")
+    print("#" * 72)
+    print("UNSCALED-X RELATIVE WEIGHT CUBIC FIT")
+    do_both([2, 1, -1, math.pi], range(100000), "minrel")
 
-print("#" * 72)
-print("SCALED-X RELATIVE WEIGHT CUBIC FIT")
-do_both([2, 1, -1, math.pi], [x * 1e-5 for x in range(100000)], "minrel")
+    print("#" * 72)
+    print("SCALED-X RELATIVE WEIGHT CUBIC FIT")
+    do_both([2, 1, -1, math.pi], [x * 1e-5 for x in range(100000)], "minrel")
 
-print("#" * 72)
-print("UNSCALED-X RELATIVE WEIGHT QUARTIC FIT")
-do_both([0, 2, 1, -1, math.pi], range(100000), "minrel")
+    print("#" * 72)
+    print("UNSCALED-X RELATIVE WEIGHT QUARTIC FIT")
+    do_both([0, 2, 1, -1, math.pi], range(100000), "minrel")
 
-print("#" * 72)
-print("SCALED-X RELATIVE WEIGHT QUARTIC FIT")
-do_both([0, 2, 1, -1, math.pi], [x * 1e-5 for x in range(100000)], "minrel")
+    print("#" * 72)
+    print("SCALED-X RELATIVE WEIGHT QUARTIC FIT")
+    do_both([0, 2, 1, -1, math.pi], [x * 1e-5 for x in range(100000)], "minrel")
 
-print("#" * 72)
-print("UNSCALED-X EQUAL WEIGHT 10TH DEGREE FIT")
-do_both([0, 0, 0, 0, 0, 0, 0, 2, 1, -1, math.pi], range(100000), "equal")
+    print("#" * 72)
+    print("UNSCALED-X EQUAL WEIGHT 10TH DEGREE FIT")
+    do_both([0, 0, 0, 0, 0, 0, 0, 2, 1, -1, math.pi], range(100000), "equal")
 
-print("#" * 72)
-print("SCALED-X EQUAL WEIGHT 10TH DEGREE FIT")
-do_both([0, 0, 0, 0, 0, 0, 0, 2, 1, -1, math.pi], [x * 1e-5 for x in range(100000)], "equal")
+    print("#" * 72)
+    print("SCALED-X EQUAL WEIGHT 10TH DEGREE FIT")
+    do_both([0, 0, 0, 0, 0, 0, 0, 2, 1, -1, math.pi], [x * 1e-5 for x in range(100000)], "equal")
 
-print("#" * 72)
-print("UNSCALED-X RELATIVE WEIGHT 10TH DEGREE FIT")
-do_both([0, 0, 0, 0, 0, 0, 0, 2, 1, -1, math.pi], range(100000), "minrel")
+    print("#" * 72)
+    print("UNSCALED-X RELATIVE WEIGHT 10TH DEGREE FIT")
+    do_both([0, 0, 0, 0, 0, 0, 0, 2, 1, -1, math.pi], range(100000), "minrel")
 
-print("#" * 72)
-print("SCALED-X RELATIVE WEIGHT 10TH DEGREE FIT")
-do_both([0, 0, 0, 0, 0, 0, 0, 2, 1, -1, math.pi], [x * 1e-5 for x in range(100000)], "minrel")
+    print("#" * 72)
+    print("SCALED-X RELATIVE WEIGHT 10TH DEGREE FIT")
+    do_both([0, 0, 0, 0, 0, 0, 0, 2, 1, -1, math.pi], [x * 1e-5 for x in range(100000)], "minrel")
+
+go()
+
+## EOF

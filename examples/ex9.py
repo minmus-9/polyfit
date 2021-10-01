@@ -2,6 +2,8 @@
 
 "same as ex1, but evaluate the poly in quad precision"
 
+from __future__ import print_function as _
+
 ## pylint: disable=invalid-name,bad-whitespace
 
 import math
@@ -22,7 +24,7 @@ def flist(l):
 
 def demo():
     "demo of the api"
-    ## pylint: disable=unnecessary-comprehension
+    ## pylint: disable=unnecessary-comprehension,too-many-locals
 
     ## poly coefficients to fit, highest degree first
     cv   = [2, 1, -1, math.pi]
@@ -65,13 +67,15 @@ def demo():
 
     ## print a few values
     for i in range(4):
-        print("value  %.1f %s" % \
+        print(
+            "value  %.1f %s" % \
             (to_float(xv[i]), flist(ev(to_float(xv[i]), nder=-1)))
         )
 
     ## print value and all derivatives for all degrees
     for i in range(D + 1):
-        print("deg    %d %s" % \
+        print(
+            "deg    %d %s" % \
             (i, flist(ev(to_float(to_float(xv[0])), deg=i, nder=-1)))
         )
 

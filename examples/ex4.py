@@ -11,8 +11,7 @@ import sys
 
 sys.path.insert(0, "..")
 
-from cpolyfit import PolyfitPlan \
-    ## pylint: disable=wrong-import-position
+from cpolyfit import PolyfitPlan   ## pylint: disable=wrong-import-position
 
 def demo():
     "demo code"

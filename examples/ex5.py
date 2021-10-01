@@ -2,17 +2,17 @@
 
 "example usage of the polyfit api"
 
+from __future__ import print_function as _
+
 ## pylint: disable=invalid-name,bad-whitespace
 
 import math
 import sys
 
-from np import npfit
-
 sys.path.insert(0, "..")
 
-from polyfit import PolyfitPlan \
-    ## pylint: disable=wrong-import-order,wrong-import-position
+from np      import npfit       ## pylint: disable=wrong-import-position
+from polyfit import PolyfitPlan ## pylint: disable=wrong-import-position
 
 def flist(l):
     "format a list to 15 decimal places"
@@ -22,7 +22,7 @@ def flist(l):
 
 def demo():
     "compute rel err in poly coefs"
-    ## pylint: disable=unnecessary-comprehension
+    ## pylint: disable=unnecessary-comprehension,too-many-locals
 
     ## poly coefficients to fit, highest degree first
     cv = [math.sqrt(2), math.exp(1), math.pi, 1]
