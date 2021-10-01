@@ -24,20 +24,26 @@ class PolyplusIntegrator(PolyfitBase):
     might be less accurate than desired.
     """
 
-    def __init__(self, fit, deg=-1):
+    def __init__(self, data, deg=-1):
         """
         create an integrator from a fit polynomial of given
         degree.
         """
-        self.data   = fit
-        self._coefs = coefs = fit.evaluator().coefs(zero(), deg)
-        deg = len(coefs) - 1
-        uno = one()
-        for j in range(deg, -1, -1):
-            i = deg - j
-            fac = div(uno, to_quad(j + 1))
-            coefs[i] = mul(coefs[i], fac)
-        ## there is an implied-zero constant term
+        if isinstance(data, dict):
+            self.data   = data
+            self._coefs = data["coefs"]
+        else:
+            self.data   = data.to_data()["fit"].copy()
+            self._coefs = coefs = data.evaluator().coefs(zero(), deg)
+            self.data["coefs"] = coefs
+
+            deg = len(coefs) - 1
+            uno = one()
+            for j in range(deg, -1, -1):
+                i = deg - j
+                fac = div(uno, to_quad(j + 1))
+                coefs[i] = mul(coefs[i], fac)
+            ## there is an implied-zero constant term
 
     def qcoefs(self):
         """
@@ -118,17 +124,22 @@ class PolyplusQuadrature(PolyfitBase):
     divided by (2D)!
     """
 
-    def __init__(self, plan):
+    def __init__(self, data):
         "init self from a plan"
-        self.data = plan
-        p = plan.to_data()["plan"]
-        self.b, self.c, self.g = p["b"], p["c"], p["g"]
+        if isinstance(data, dict):
+            self.data = data
+        else:
+            self.data = data = data.to_data()["plan"].copy()
 
-        x0, x1 = min(p["x"]), max(p["x"])
-        self.x0, self.x1 = to_quad(x0), to_quad(x1)
+            data["x0"], data["x1"] = min(data["x"]), max(data["x"])
 
-        self.the_roots   = { 0: [ ] }
-        self.the_schemes = { }
+            data["roots"]   = { 0: [ ] }
+            data["schemes"] = { }
+
+        self.b, self.c, self.g = data["b"], data["c"], data["g"]
+        self.x0, self.x1 = to_quad(data["x0"]), to_quad(data["x1"])
+        self.the_roots = data["roots"]
+        self.the_schemes = data["schemes"]
 
     def __call__(self, func, deg):
         r"""

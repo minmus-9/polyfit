@@ -101,6 +101,11 @@ def demo():
     quad = q.PolyplusQuadrature(plan)
     print("quad %.2e" % (time.time() - t0))
 
+    ## quick serialization test
+    ser  = quad.to_data()
+    assert isinstance(ser, dict)
+    quad = q.PolyplusQuadrature.from_data(ser)
+
     print()
     for l in range(1, D + 1):
         ## loop over gaussian quadrature order (#points)"

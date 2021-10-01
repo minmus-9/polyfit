@@ -32,6 +32,12 @@ def demo():
     plan  = p.PolyfitPlan(D, xv, wv)
     fit   = plan.fit(yv)
     integ = q.PolyplusIntegrator(fit, D)
+
+    ## quick serialization test
+    ser   = integ.to_data()
+    assert isinstance(ser, dict)
+    integ = q.PolyplusIntegrator.from_data(ser)
+
     print(integ.qcoefs())
     ## should be [(1, 0), (1, 0), (1, 0), (0, 0)]
 
