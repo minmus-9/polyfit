@@ -25,7 +25,9 @@ def peval(cofs, xv):
     """
     evaluate the polyomial given by cofs
     at each xv[] value. higher order terms
-    come first in cofs
+    come first in cofs. there will be
+    plently of roundoff error here which
+    will affect the fit.
     """
     yv = array.array('d')
     for x in xv:

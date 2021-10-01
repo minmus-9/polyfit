@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 
-"example usage of the polyfit api"
+"""
+relative error in coefs, polyfit vs numpy
+"""
 
 from __future__ import print_function as _
 

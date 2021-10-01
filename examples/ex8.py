@@ -5,7 +5,6 @@ gaussian quadrature demo
 
 if you want to compute
 
-
     sum(f(x_i) * w_i for x_i, w_i in zip(xv, wv))
 
 you can replace this with gaussian quadrature as

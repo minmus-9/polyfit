@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 
-"example usage of the polyfit api"
+"""
+polyfit vs numpy relative error in coefs for
+uniform and relative weights
+"""
 
 from __future__ import print_function as _
 
@@ -64,7 +67,7 @@ def demo():
 
     ## evaluate in quad-precision
     def pv(x):
-        "evaluate using cv"
+        "evaluate using cv in extended precision"
         x = to_quad(x)
         r = zero()
         for c in cv:
