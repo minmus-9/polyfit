@@ -449,8 +449,8 @@ class PolyfitFit(PolyfitBase):
             { "plan": plan.copy(), "fit": polyfit_fit(plan, yv) }
         ## no need for these now that we have a fit, saves a lot
         ## of serialization space
-        self.data["plan"].pop("x")
-        self.data["plan"].pop("w")
+        self.data["plan"].pop("x", None)
+        self.data["plan"].pop("w", None)
 
     def evaluator(self):
         """
