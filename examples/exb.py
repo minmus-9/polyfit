@@ -31,26 +31,34 @@ def demo():
     """
     ## pylint: disable=unnecessary-comprehension,too-many-locals
 
+    ## "limit" means the estimation of pi
+    ## is worse than 3.14159
+
     if 0:
         N = 10
-        D = 7       ## the wheels come off for numpy above this
+        D = 7       ## numpy limit
                     ## polyfit handles every degree exactly
     elif 0:
         N = 100
-        D = 16      ## the wheels come off for polyfit above this
-        D = 5       ## the wheels come off for numpy above this
+        D = 16      ## polyfit limit
+                    ##  numpy cholesky crashes
+        D = 4       ## numpy limit
     elif 1:
         N = 1000
-        D = 11      ## the wheels come off for polyfit above this
-        D = 3       ## the wheels come off for numpy above this
+        D = 10      ## polyfit limit
+        D = 3       ## numpy limit
     elif 0:
         N = 10000
-        D = 8       ## the wheels come off for polyfit above this
-        D = 3       ## the wheels come off for numpy above this
+        D = 7       ## polyfit limit
+        D = 2       ## numpy limit
     elif 0:
         N = 100000
-        D = 6       ## the wheels come off for polyfit above this
-        D = 2       ## the wheels come off for numpy above this
+        D = 6       ## polyfit limit
+        D = 2       ## numpy limit
+    elif 0:
+        N = 1000000
+        D = 5       ## polyfit limit
+        D = 1       ## numpy limit
 
     def qpow(x, k):
         "x**k in quad precision"
@@ -132,7 +140,7 @@ def demo():
     ## values at zero and N>>2, expect (N>>1)**D+pi and pi
     print("polyfit vals:")
     for i in (0, N >> 1):
-        print("%6d %s" % (i, flist(ev(i))))
+        print("%6d %s" % (i, flist(ev(p.to_quad(i)))))
 
     ## numpy
     cofs = npfit(xv, yv, wv, D)
