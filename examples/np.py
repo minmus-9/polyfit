@@ -8,6 +8,7 @@ import math
 import sys
 
 import numpy as np
+import scipy.linalg as la
 
 sys.path.insert(0, "..")
 from polyfit import (   ## pylint: disable=wrong-import-position
@@ -21,8 +22,8 @@ def npfit(xv, yv, wv, D):
     yv = [to_quad(y) for y in yv]
     wv = [to_quad(w) for w in wv]
     xa = wv[:]          ## accumulator
-    mx = [ ]            ## moments
-    r  = [ ]            ## rhs in ac=b
+    mx = [ ]            ## quad-prec moments
+    r  = [ ]            ## quad-prec rhs in Ac=r
     for i in range((D + 1) * 2):
         if i <= D:
             ## compute rhs
@@ -37,40 +38,19 @@ def npfit(xv, yv, wv, D):
         mx.append(vectorsum(v))
         for j, x in enumerate(xa):
             xa[j] = mul(x, xv[j])
-    ## build the dprec normal matrix from qprec moments
+    ## build the normal matrix from qprec moments
     A = [ ]
     for i in range(D + 1):
         A.append([to_float(m) for m in mx[i:i+D+1]])
     A = np.array(A)
-    ## numpy rhs
+    ## build the numpy rhs from the qprec one
     b = np.array([to_float(x) for x in r])
     ## solve the normal equations
-    L    = np.linalg.cholesky(A)
-    y    = np.linalg.solve(L, b)
-    cofs = np.linalg.solve(np.transpose(L), y)
+    info = la.cho_factor(A)
+    cofs = la.cho_solve(info, b)
+    ## get 'em into std order for horner's method
     cofs = list(cofs)
     cofs.reverse()
     return cofs
-
-def demo():
-    "numpy demo"
-    ## pylint: disable=unnecessary-comprehension
-    cv = [2, 1, -1, math.pi]
-    def pv(x):
-        "evaluate the model poly"
-        r = 0.
-        for c in cv:
-            r *= x
-            r += c
-        return r
-    N  = 100
-    D  = len(cv) - 1
-    xv = [x for x in range(N)]
-    yv = [pv(x) for x in xv]
-    wv = [1. for _ in xv]
-    print(npfit(xv, yv, wv, D))
-
-if __name__ == "__main__":
-    demo()
 
 ## EOF
