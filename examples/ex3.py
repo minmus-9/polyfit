@@ -90,31 +90,28 @@ def do_numpy(cofs, xv, wv=None):
         tag = "minrel weights"
         wv  = [y**-2. for y in yv]
     else:
-        tag = "custon weights"
-    t0  = time.time()
-    fit = npfit(xv, yv, wv, D=len(cofs) - 1)
-    dt  = time.time() - t0
-    tag = (": " + tag) if tag else ""
+        tag = "custom weights"
+    t0   = time.time()
+    cofs = npfit(xv, yv, wv, D=len(cofs) - 1)
+    dt   = time.time() - t0
+    tag  = (": " + tag) if tag else ""
     print("numpy%s: dt %.4e" % (tag, dt))
     print("                  -max rel err-")
     print("deg     erms      erel     indx    coefs")
-    cofs  = fit
-    ceval = cofs[:]
-    ceval.reverse()
     def pv(x):
         "evaluate the model poly"
         r = 0.
-        for c in ceval:
+        for c in cofs:
             r *= x
             r += c
         return r
     pred = [pv(x) for x in xv]
-    rms  = sum((p - o)**2 for p, o in zip(pred, yv))
+    rms  = sum((o - e)**2 for o, e in zip(pred, yv))
     rms  = math.sqrt(rms / len(xv))
     maxrelerr, maxat = -1., 0
     for j, x in enumerate(xv):
         exp = yv[j]
-        obs = pv(x)
+        obs = pred[j]
         rel = abs(obs / exp - 1.)
         if rel > maxrelerr:
             maxrelerr, maxat = rel, j
