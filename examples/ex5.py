@@ -13,8 +13,12 @@ import sys
 
 sys.path.insert(0, "..")
 
-from np      import npfit       ## pylint: disable=wrong-import-position
-from polyfit import PolyfitPlan ## pylint: disable=wrong-import-position
+from polyfit import (   ## pylint: disable=wrong-import-position
+    PolyfitPlan, to_float
+)
+
+from cholesky import chofit     ## pylint: disable=wrong-import-position
+#from np import chofit           ## pylint: disable=wrong-import-position
 
 def flist(l):
     "format a list to 15 decimal places"
@@ -70,7 +74,7 @@ def demo():
     print("  relerr", flist(rel))
 
     ## numpy
-    obs = npfit(xv, yv, wv, D)
+    obs = [to_float(c) for c in chofit(xv, yv, wv, D)]
     rel = [abs(o/e - 1.) for o, e in zip(obs, cv)]
     print("numpy:")
     print("  coefs ", flist(obs))

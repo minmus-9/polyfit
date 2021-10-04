@@ -13,9 +13,11 @@ import sys
 
 sys.path.insert(0, "..")
 
-import polyfit as p     ## pylint: disable=wrong-import-position
+import polyfit as p             ## pylint: disable=wrong-import-position
 
-from np import npfit    ## pylint: disable=wrong-import-position
+from cholesky import chofit ## pylint: disable=wrong-import-position
+#from np  import chofit      ## pylint: disable=wrong-import-position
+
 
 def flist(l):
     "format a list to 16 sigfigs"
@@ -27,17 +29,17 @@ def demo():
     # pylint: disable=too-many-statements,using-constant-test
     """
     this demo shows the limits of polyfit and numpy
-    for various numbers of data points
+    extrapolation outside the fit interval
     """
     ## pylint: disable=unnecessary-comprehension,too-many-locals
 
-    N = 1000
+    N = 10000
     D = 3
 
     ## here "limit" means using the largest X such that
     ## the model and fit(X) match to 6 sigfigs
 
-    X = p.to_quad(1e102)    ## polyfit never craps out
+    X = p.to_quad(1e10)     ## polyfit never craps out
     X = p.to_quad(2e2)      ## limit for numpy
 
     def qpow(x, k):
@@ -114,14 +116,13 @@ def demo():
     print("exp            %s" % flist(EXP))
 
     ## numpy
-    cofs = npfit(xv, yv, wv, D)
+    cofs = [p.to_quad(c) for c in chofit(xv, yv, wv, D)]
 
     def nv(x):
-        x = p.to_float(x)
-        r = 0.
+        x = p.to_quad(x)
+        r = p.zero()
         for c in cofs:
-            r *= x
-            r += c
+            r = p.add(p.mul(r, x), c)
         return r
 
     print("numpy vals:")

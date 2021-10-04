@@ -1,5 +1,4 @@
-"""
-integrals and gaussian quadrature add-ons for polyfit.py
+""" integrals and gaussian quadrature add-ons for polyfit.py
 """
 
 from __future__ import print_function as _
@@ -99,6 +98,7 @@ def bis(    ## pylint: disable=too-many-arguments
 ## }}}
 ## {{{ quadrature over wv[] and xv[]
 class PolyplusQuadrature(PolyfitBase):
+    ## pylint: disable=too-many-instance-attributes
     """
     this class implements gaussian quadrature on a
     discrete set of points.

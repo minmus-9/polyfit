@@ -4,7 +4,6 @@ from __future__ import print_function as _
 
 ## pylint: disable=invalid-name,bad-whitespace
 
-import math
 import sys
 
 import numpy as np
@@ -12,11 +11,11 @@ import scipy.linalg as la
 
 sys.path.insert(0, "..")
 from polyfit import (   ## pylint: disable=wrong-import-position
-    sub, mul, vectorsum, vappend, to_quad, to_float
+    mul, vectorsum, vappend, to_quad, to_float
 )
 
-def npfit(xv, yv, wv, D):
-    "numpy fit, quad-precision setup"
+def chofit(xv, yv, wv, D):
+    "cholesky numpy fit, quad-precision setup"
     ## pylint: disable=too-many-locals
     xv = [to_quad(x) for x in xv]
     yv = [to_quad(y) for y in yv]
@@ -49,7 +48,7 @@ def npfit(xv, yv, wv, D):
     info = la.cho_factor(A)
     cofs = la.cho_solve(info, b)
     ## get 'em into std order for horner's method
-    cofs = list(cofs)
+    cofs = [to_quad(c) for c in cofs]
     cofs.reverse()
     return cofs
 

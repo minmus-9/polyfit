@@ -12,7 +12,8 @@ from __future__ import print_function as _
 import math
 import sys
 
-from np import npfit
+from cholesky import chofit
+#from np import chofit
 
 sys.path.insert(0, "..")
 
@@ -48,7 +49,7 @@ def doit(xv, yv, wv, coefs):
     print("  relerr", flist(rel))
 
     ## numpy
-    obs = npfit(xv, yv, wv, D)
+    obs = [to_float(c) for c in chofit(xv, yv, wv, D)]
     rel = [abs(o/e - 1.) if e else 0 for o, e in zip(obs, coefs)]
     print("numpy:")
     print("  exp   ", flist(coefs))

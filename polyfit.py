@@ -52,6 +52,8 @@ def twoproduct(a, b):
 
 def sum2s(p):
     "7n-1 flops, algorithm 4.1 from ogita"
+    if not p:
+        return zero()
     pi, sigma = p[0], 0.
     for i in range(1, len(p)):
         pi, q  = twosum(pi, p[i])

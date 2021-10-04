@@ -14,10 +14,16 @@ import time
 
 sys.path.insert(0, "..")
 
+from polyfit import (   ## pylint: disable=wrong-import-position
+    zero, add, mul, to_quad, to_float
+)
+
 #from polyfit import PolyfitPlan     ## pylint: disable=wrong-import-position
+
 from cpolyfit import PolyfitPlan    ## pylint: disable=wrong-import-position
 
-from np import npfit
+from cholesky import chofit
+#from np import chofit
 
 sys.stdout = os.fdopen(1, "w", 1)
 
@@ -81,7 +87,7 @@ def do_polyfit(cofs, xv, wv=None):
 
 def do_numpy(cofs, xv, wv=None):
     ## pylint: disable=too-many-locals
-    "compute and print npfit"
+    "compute and print chofit"
     yv = peval(cofs, xv)
     if (wv is None) or (isinstance(wv, str) and wv == "equal"):
         tag = "equal weights"
@@ -92,7 +98,7 @@ def do_numpy(cofs, xv, wv=None):
     else:
         tag = "custom weights"
     t0   = time.time()
-    cofs = npfit(xv, yv, wv, D=len(cofs) - 1)
+    cofs = chofit(xv, yv, wv, D=len(cofs) - 1)
     dt   = time.time() - t0
     tag  = (": " + tag) if tag else ""
     print("numpy%s: dt %.4e" % (tag, dt))
@@ -100,16 +106,16 @@ def do_numpy(cofs, xv, wv=None):
     print("deg     erms      erel     indx    coefs")
     def pv(x):
         "evaluate the model poly"
-        r = 0.
+        x = to_quad(x)
+        r = zero()
         for c in cofs:
-            r *= x
-            r += c
+            r = add(mul(r, x), c)
         return r
-    pred = [pv(x) for x in xv]
+    pred = [to_float(pv(x)) for x in xv]
     rms  = sum((o - e)**2 for o, e in zip(pred, yv))
     rms  = math.sqrt(rms / len(xv))
     maxrelerr, maxat = -1., 0
-    for j, x in enumerate(xv):
+    for j in range(len(xv)):
         exp = yv[j]
         obs = pred[j]
         rel = abs(obs / exp - 1.)

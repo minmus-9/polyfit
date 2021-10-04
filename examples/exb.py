@@ -13,9 +13,10 @@ import sys
 
 sys.path.insert(0, "..")
 
-import polyfit as p     ## pylint: disable=wrong-import-position
+import polyfit as p             ## pylint: disable=wrong-import-position
 
-from np import npfit    ## pylint: disable=wrong-import-position
+from cholesky import chofit ## pylint: disable=wrong-import-position
+#from np import chofit       ## pylint: disable=wrong-import-position
 
 def flist(l):
     "format a list to 16 sigfigs"
@@ -36,28 +37,32 @@ def demo():
 
     if 0:
         N = 10
+        D = 10      ## polyfit and cho handle every degree
         D = 7       ## numpy limit
-                    ## polyfit handles every degree exactly
     elif 0:
         N = 100
         D = 16      ## polyfit limit
-                    ##  numpy cholesky crashes
+        D = 9       ## cho limit
         D = 4       ## numpy limit
-    elif 1:
+    elif 0:
         N = 1000
         D = 10      ## polyfit limit
+        D = 7       ## cho limit
         D = 3       ## numpy limit
-    elif 0:
+    elif 1:
         N = 10000
         D = 7       ## polyfit limit
+        D = 5       ## cho limit
         D = 2       ## numpy limit
     elif 0:
         N = 100000
         D = 6       ## polyfit limit
+        D = 4       ## cho limit
         D = 2       ## numpy limit
     elif 0:
         N = 1000000
         D = 5       ## polyfit limit
+        D = 4       ## cho limit
         D = 1       ## numpy limit
 
     def qpow(x, k):
@@ -143,17 +148,16 @@ def demo():
         print("%6d %s" % (i, flist(ev(p.to_quad(i)))))
 
     ## numpy
-    cofs = npfit(xv, yv, wv, D)
+    cofs = [p.to_quad(c) for c in chofit(xv, yv, wv, D)]
     print("numpy cofs, x=0:")
     for i, c in enumerate(cofs):
-        print("%2d %23.15e" % (i, c))
+        print("%2d %s" % (i, flist(c)))
 
     def nv(x):
-        x = p.to_float(x)
-        r = 0.
+        x = p.to_quad(x)
+        r = p.zero()
         for c in cofs:
-            r *= x
-            r += c
+            r = p.add(p.mul(r, x), c)
         return r
 
     print("numpy vals:")
