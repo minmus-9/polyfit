@@ -17,15 +17,15 @@ chofit = tl.c.chofit
 
 def demo():
     "compute rel err in poly coefs"
-    ## pylint: disable=unnecessary-comprehension,too-many-locals
+    ## pylint: disable=too-many-locals
 
     ## poly coefficients to fit, highest degree first
     cv   = [2, 1, -1, math.pi]
-    cvee = [tl.p.to_quad(z) for z in cv]
+    cvee = tl.qvec(cv)
 
     ## define the x and y values for the fit
     N  = 10000
-    xv = [tl.p.to_quad(x) for x in range(N)]
+    xv = tl.qvec(range(N))
     yv = [tl.qeval(x, cvee) for x in xv]
 
     ## weights:

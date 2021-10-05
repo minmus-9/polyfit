@@ -28,33 +28,13 @@ from __future__ import print_function as _
 
 ## pylint: disable=invalid-name,bad-whitespace
 
-import os
-import sys
 import time
 
-sys.path.insert(0, "..")    ## pylint: disable=wrong-import-position
-
-import polyfit  as p
-import polyplus as q
-
-sys.stdout = os.fdopen(1, "w", 1)
+import testlib as tl
 
 def demo():
     "demo code"
     ## pylint: disable=too-many-locals
-
-    def flist(l, lf=False):
-        "format items as high-precision"
-        f1 = "%23.16e"
-        f2 = "(%23.16e, %23.16e)"
-        ll = [ ]
-        s  = "\n  " if lf else " "
-        for x in l:
-            if isinstance(x, tuple):
-                ll.append("(%s, %s)" % (f2 % x[0], f2 % x[1]))
-            else:
-                ll.append(f1 % x)
-        return s + s.join(ll)
 
     D    = 8
     N    = 10000
@@ -63,48 +43,37 @@ def demo():
     wv   = [1. for _ in xv]
 
     t0   = time.time()
-    plan = p.PolyfitPlan(D, xv, wv)
+    plan = tl.p.PolyfitPlan(D, xv, wv)
     print("plan %.2e" % (time.time() - t0))
-
-    def xk(x, k):
-        "compute x**k in quad precision"
-        x   = p.to_quad(x)
-        ret = p.one()
-        while k:
-            if k & 1:
-                ret = p.mul(ret, x)
-            k >>= 1
-            x   = p.mul(x, x)
-        return ret
 
     def check(l, k):
         "check the slow vs gaussian quadrature results"
-        f   = lambda x: xk(x, k)
+        f = lambda x: tl.qx_to_the_k(x, k)
         ## compute the large sum
-        v   = [ ]
+        v = [ ]
         for w, x in zip(wv, xv):
-            p.vappend(v, p.mul(p.to_quad(w), f(p.to_quad(x))))
-        exp = p.vectorsum(v)
+            tl.p.vappend(v, tl.p.mul(tl.p.to_quad(w), f(x)))
+        exp = tl.p.vectorsum(v)
         ## do the quadrature
         obs = quad.qquad(f, l)
         ## compute difference and rel error in quad prec
-        dif = p.sub(obs, exp)
-        rel = p.div(dif, exp)
+        dif = tl.p.sub(obs, exp)
+        rel = tl.p.div(dif, exp)
         ## then dumb everything down to double for printing
-        rel = p.to_float(rel)
-        dif = p.to_float(dif)
-        exp = p.to_float(exp)
-        obs = p.to_float(obs)
-        print(k, flist((exp, obs, dif, rel)))
+        rel = tl.p.to_float(rel)
+        dif = tl.p.to_float(dif)
+        exp = tl.p.to_float(exp)
+        obs = tl.p.to_float(obs)
+        print(k, tl.format_list((exp, obs, dif, rel)))
 
     t0 = time.time()
-    quad = q.PolyplusQuadrature(plan)
+    quad = tl.q.PolyplusQuadrature(plan)
     print("quad %.2e" % (time.time() - t0))
 
     ## quick serialization test
     ser  = quad.to_data()
     assert isinstance(ser, dict)
-    quad = q.PolyplusQuadrature.from_data(ser)
+    quad = tl.q.PolyplusQuadrature.from_data(ser)
 
     print()
     for l in range(1, D + 1):

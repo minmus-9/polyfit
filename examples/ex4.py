@@ -17,15 +17,9 @@ def demo():
     "demo code"
     ## pylint: disable=import-outside-toplevel,too-many-locals
     import math
+    cv = [2, 1, -1, math.pi]
     xv = array.array('d', range(10000))
-    def f(x, c=(2, 1, -1, math.pi)):
-        "eval test poly"
-        r=0.
-        for co in c:
-            r *= x
-            r += co
-        return r
-    yv = array.array('d', [f(x) for x in xv])
+    yv = array.array('d', [tl.deval(x, cv) for x in xv])
     #wv = array.array('d', [y**-2. for y in yv])
     wv = array.array('d', [1.] * len(xv))
 
@@ -53,6 +47,7 @@ def demo():
     del ev
     del fit
     del plan
+    print("done")
 
 if __name__ == "__main__":
     demo()

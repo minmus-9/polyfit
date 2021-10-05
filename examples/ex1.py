@@ -16,21 +16,11 @@ def demo():
 
     ## poly coefficients to fit, highest degree first
     cv = [2, 1, -1, math.pi]
-    #cv = [1, -2, 1]
-
-    ## evaluate the polynomial above using horner's method
-    def pv(x):
-        "evaluate using cv"
-        r = 0.
-        for c in cv:
-            r *= x
-            r += c
-        return r
 
     ## define the x and y values for the fit
     N  = 10000
     xv = [x for x in range(N)]
-    yv = [pv(x) for x in xv]
+    yv = [tl.deval(x, cv) for x in xv]
 
     ## weights:
     ##     uniform to minimize the max residual
@@ -67,7 +57,7 @@ def demo():
         print("coefs  %d %s" % (i, tl.format_list(ev.coefs(xv[0], i))))
 
     ## coefs halfway through
-    print("coefs ", tl.format_list(ev.coefs(xv[N >> 1], deg)))
+    print("mcoefs", tl.format_list(ev.coefs(xv[N >> 1], deg)))
 
 if __name__ == "__main__":
     demo()

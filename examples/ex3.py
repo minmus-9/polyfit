@@ -87,7 +87,7 @@ def do_numpy(cofs, xv, wv=None):
             maxrelerr, maxat = rel, j
     print(
         " %2d   %.1e   %.1e   %6d   %s" % \
-        (len(cofs)-1, rms, maxrelerr, maxat, cofs)
+        (len(cofs)-1, rms, maxrelerr, maxat, tl.dvec(cofs))
     )
     print()
 
@@ -138,7 +138,8 @@ def go():
 
     print("#" * 72)
     print("SCALED-X EQUAL WEIGHT 10TH DEGREE FIT")
-    do_both([0, 0, 0, 0, 0, 0, 0, 2, 1, -1, math.pi], [x * 1e-5 for x in range(N)], "equal")
+    do_both([0, 0, 0, 0, 0, 0, 0, 2, 1, -1, math.pi],
+            [x * 1e-5 for x in range(N)], "equal")
 
     print("#" * 72)
     print("UNSCALED-X RELATIVE WEIGHT 10TH DEGREE FIT")
@@ -146,7 +147,8 @@ def go():
 
     print("#" * 72)
     print("SCALED-X RELATIVE WEIGHT 10TH DEGREE FIT")
-    do_both([0, 0, 0, 0, 0, 0, 0, 2, 1, -1, math.pi], [x * 1e-5 for x in range(N)], "minrel")
+    do_both([0, 0, 0, 0, 0, 0, 0, 2, 1, -1, math.pi],
+            [x * 1e-5 for x in range(N)], "minrel")
 
 go()
 

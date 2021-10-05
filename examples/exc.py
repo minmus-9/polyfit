@@ -9,21 +9,11 @@ from __future__ import print_function as _
 ## pylint: disable=invalid-name,bad-whitespace
 
 import math
-import sys
 
-sys.path.insert(0, "..")
+import testlib as tl
 
-import polyfit as p             ## pylint: disable=wrong-import-position
-
-from cholesky import chofit ## pylint: disable=wrong-import-position
-#from np  import chofit      ## pylint: disable=wrong-import-position
-
-
-def flist(l):
-    "format a list to 16 sigfigs"
-    if not isinstance(l, (list, tuple)):
-        l = [l]
-    return " ".join("%24.15e" % x for x in l)
+#chofit = tl.n.chofit
+chofit = tl.c.chofit
 
 def demo():
     # pylint: disable=too-many-statements,using-constant-test
@@ -31,7 +21,7 @@ def demo():
     this demo shows the limits of polyfit and numpy
     extrapolation outside the fit interval
     """
-    ## pylint: disable=unnecessary-comprehension,too-many-locals
+    ## pylint: disable=too-many-locals
 
     N = 10000
     D = 3
@@ -39,96 +29,59 @@ def demo():
     ## here "limit" means using the largest X such that
     ## the model and fit(X) match to 6 sigfigs
 
-    X = p.to_quad(1e10)     ## polyfit never craps out
-    X = p.to_quad(2e2)      ## limit for numpy
-
-    def qpow(x, k):
-        "x**k in quad precision"
-        assert isinstance(k, int)
-        if k < 0:
-            x = p.div(p.one(), x)
-            k = -k
-        res = p.one()
-        while k:
-            if k & 1:
-                res = p.mul(res, x)
-            k >>= 1
-            x   = p.mul(x, x)
-        return res
+    X = tl.p.to_quad(1e10)  ## polyfit never craps out
+    X = tl.p.to_quad(2e2)   ## limit for numpy
 
     def pv(x):
         r"evaluate the model \pi + (x - N>>1) ** D"
-        return p.add(
-            p.to_quad(math.pi),
-            qpow(p.sub(x, p.to_quad(N >> 1)), D)
+        return tl.p.add(
+            tl.p.to_quad(math.pi),
+            tl.qx_to_the_k(tl.p.sub(x, tl.p.to_quad(N >> 1)), D)
         )
 
     EXP = pv(X)
-
-    def fac_(n):
-        "factorial using recursion"
-        if n < 2:
-            return 1
-        return n * fac(n - 1)
-
-    FAC = { }
-    def fac(n):
-        "factorial"
-        if n not in FAC:
-            FAC[n] = fac_(n)
-        return FAC[n]
-
-    def bincof(n, k):
-        "binomial coefficient"
-        return fac(n) // fac(k) // fac(n - k)
-
-    def itoq(n):
-        "integer to quad"
-        x = float(n)
-        return (x, n - x)
 
     def exp_coef(k):
         "expected model coef about x=0"
         return \
             pow(N >> 1, k) * \
-            bincof(D, k) * \
+            tl.bincof(D, k) * \
             (1, -1)[k & 1]
 
     ## expected coefs
-    cv     = [itoq(exp_coef(k)) for k in range(D + 1)]
-    cv[-1] = p.add(cv[-1], p.to_quad(math.pi))
+    cv     = [tl.itoq(exp_coef(k)) for k in range(D + 1)]
+    cv[-1] = tl.p.add(cv[-1], tl.p.to_quad(math.pi))
 
     ## define the x and y values for the fit
     sc = 1 / N
-    xv = [p.to_quad(x * sc) for x in range(N)]
+    xv = [tl.p.to_quad(x * sc) for x in range(N)]
     yv = [pv(x) for x in xv]
-    wv = [p.one()] * len(xv)
+    wv = [tl.p.one()] * len(xv)
 
     ## perform the fit
-    plan = p.PolyfitPlan(D, xv, wv)
+    plan = tl.p.PolyfitPlan(D, xv, wv)
     fit  = plan.fit(yv)
     ev   = fit.evaluator()
 
     ## values at zero and N>>2, expect (N>>1)**D+pi and pi
     print("polyfit vals:")
     for i in (0, N >> 1, X):
-        print("%14.5e %s" % (p.to_float(i), flist(ev(p.to_quad(i)))))
-    print("exp            %s" % flist(EXP))
+        print(
+            "%14.5e %s" % \
+            (tl.p.to_float(i), tl.format_list(ev(tl.p.to_quad(i))))
+        )
+    print("exp            %s" % tl.format_list(EXP))
 
     ## numpy
-    cofs = [p.to_quad(c) for c in chofit(xv, yv, wv, D)]
-
-    def nv(x):
-        x = p.to_quad(x)
-        r = p.zero()
-        for c in cofs:
-            r = p.add(p.mul(r, x), c)
-        return r
+    cofs = chofit(xv, yv, wv, D)
 
     print("numpy vals:")
     for i in (0, N >> 1, X):
-        print("%14.5e %s" % (p.to_float(i), flist(nv(i))))
-    print("exp            %s" % flist(EXP))
+        print(
+            "%14.5e %s" % \
+            (tl.p.to_float(i), tl.format_list(tl.qeval(i, cofs)))
+        )
+    print("exp            %s" % tl.format_list(EXP))
 
 if __name__ == "__main__":
     demo()

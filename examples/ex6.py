@@ -30,8 +30,8 @@ def doit(xv, yv, wv, coefs):
     print("points", plan.npoints())
 
     ## print rel errs in coefs
-    obs = [tl.p.to_float(c) for c in ev.coefs(xv[0], -1)]
-    cof = [tl.p.to_float(c) for c in coefs]
+    obs = tl.dvec(ev.coefs(xv[0], -1))
+    cof = tl.dvec(coefs)
     print("polyfit:")
     print("  exp   ", tl.format_list(cof))
     print("  coefs ", tl.format_list(obs))
@@ -39,7 +39,7 @@ def doit(xv, yv, wv, coefs):
     print("  relerr", tl.format_list(rel))
 
     ## numpy
-    obs = [tl.p.to_float(c) for c in chofit(xv, yv, wv, D)]
+    obs = tl.dvec(chofit(xv, yv, wv, D))
     rel = [abs(o/e - 1.) if e else 0 for o, e in zip(obs, cof)]
     print("numpy:")
     print("  exp   ", tl.format_list(cof))
@@ -48,20 +48,19 @@ def doit(xv, yv, wv, coefs):
 
 def demo():
     "compute rel err in poly coefs"
-    ## pylint: disable=unnecessary-comprehension
 
     ## poly coefficients to fit, highest degree first
     cv   = [0, math.sqrt(2), math.exp(1), math.pi, 1]
-    cvee = [tl.p.to_quad(c) for c in cv]
+    cvee = tl.qvec(cv)
 
     ## define the x and y values for the fit
     N  = 10000
-    xv = [tl.p.to_quad(x) for x in range(N)]
+    xv = tl.qvec(range(N))
     yv = [tl.qeval(x, cvee) for x in xv]
 
     ## weights:
     ##     uniform to minimize the max residual
-    wv = [1. for _ in xv]
+    wv = [tl.p.one() for _ in xv]
 
     print("uniform weights")
     doit(xv, yv, wv, cvee)
@@ -69,7 +68,7 @@ def demo():
 
     ##     relative to minimize the relative residual
     ##     note that y is nonzero for this example
-    wv = [tl.p.to_float(y) ** -2. for y in yv]
+    wv = tl.qvec(tl.p.to_float(y) ** -2. for y in yv)
 
     print("relative weights")
     doit(xv, yv, wv, cvee)
