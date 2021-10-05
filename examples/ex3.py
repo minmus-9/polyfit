@@ -8,41 +8,12 @@ from __future__ import print_function
 
 import array
 import math
-import os
-import sys
 import time
 
-sys.path.insert(0, "..")
+import testlib as tl
 
-from polyfit import (   ## pylint: disable=wrong-import-position
-    zero, add, mul, to_quad, to_float
-)
-
-#from polyfit import PolyfitPlan     ## pylint: disable=wrong-import-position
-
-from cpolyfit import PolyfitPlan    ## pylint: disable=wrong-import-position
-
-from cholesky import chofit
-#from np import chofit
-
-sys.stdout = os.fdopen(1, "w", 1)
-
-def peval(cofs, xv):
-    """
-    evaluate the polyomial given by cofs
-    at each xv[] value. higher order terms
-    come first in cofs. there will be
-    plently of roundoff error here which
-    will affect the fit.
-    """
-    yv = array.array('d')
-    for x in xv:
-        r = 0.
-        for c in cofs:
-            r *= x
-            r += c
-        yv.append(r)
-    return yv
+#chofit = tl.n.chofit
+chofit = tl.c.chofit
 
 def printfit(fit, xv, yv, dt, tag=""):
     ## pylint: disable=too-many-locals
@@ -70,7 +41,7 @@ def printfit(fit, xv, yv, dt, tag=""):
 
 def do_polyfit(cofs, xv, wv=None):
     "compute and print polyfit"
-    yv = peval(cofs, xv)
+    yv = [tl.deval(x, cofs) for x in xv]
     if (wv is None) or (isinstance(wv, str) and wv == "equal"):
         tag = "unity weights"
         wv  = array.array('d', [1.] * len(xv))
@@ -80,7 +51,7 @@ def do_polyfit(cofs, xv, wv=None):
     else:
         tag = "custon weights"
     t0   = time.time()
-    plan = PolyfitPlan(len(cofs) - 1, xv, wv)
+    plan = tl.p.PolyfitPlan(len(cofs) - 1, xv, wv)
     fit  = plan.fit(yv)
     dt   = time.time() - t0
     printfit(fit, xv, yv, dt, tag)
@@ -88,7 +59,7 @@ def do_polyfit(cofs, xv, wv=None):
 def do_numpy(cofs, xv, wv=None):
     ## pylint: disable=too-many-locals
     "compute and print chofit"
-    yv = peval(cofs, xv)
+    yv = [tl.deval(x, cofs) for x in xv]
     if (wv is None) or (isinstance(wv, str) and wv == "equal"):
         tag = "equal weights"
         wv  = [1.] * len(xv)
@@ -104,14 +75,7 @@ def do_numpy(cofs, xv, wv=None):
     print("numpy%s: dt %.4e" % (tag, dt))
     print("                  -max rel err-")
     print("deg     erms      erel     indx    coefs")
-    def pv(x):
-        "evaluate the model poly"
-        x = to_quad(x)
-        r = zero()
-        for c in cofs:
-            r = add(mul(r, x), c)
-        return r
-    pred = [to_float(pv(x)) for x in xv]
+    pred = [tl.qevald(x, cofs) for x in xv]
     rms  = sum((o - e)**2 for o, e in zip(pred, yv))
     rms  = math.sqrt(rms / len(xv))
     maxrelerr, maxat = -1., 0
@@ -135,53 +99,54 @@ def do_both(cofs, xv, wv=None):
 
 def go():
     "run the tests"
+    N = 100000
     print("#" * 72)
     print("UNSCALED-X EQUAL WEIGHT CUBIC FIT")
-    do_both([2, 1, -1, math.pi], range(100000), "equal")
+    do_both([2, 1, -1, math.pi], range(N), "equal")
 
     print("#" * 72)
     print("SCALED-X EQUAL WEIGHT CUBIC FIT")
-    do_both([2, 1, -1, math.pi], [x * 1e-5 for x in range(100000)], "equal")
+    do_both([2, 1, -1, math.pi], [x * 1e-5 for x in range(N)], "equal")
 
     print("#" * 72)
     print("UNSCALED-X EQUAL WEIGHT QUARTIC FIT")
-    do_both([0, 2, 1, -1, math.pi], range(100000), "equal")
+    do_both([0, 2, 1, -1, math.pi], range(N), "equal")
 
     print("#" * 72)
     print("SCALED-X EQUAL WEIGHT QUARTIC FIT")
-    do_both([0, 2, 1, -1, math.pi], [x * 1e-5 for x in range(100000)], "equal")
+    do_both([0, 2, 1, -1, math.pi], [x * 1e-5 for x in range(N)], "equal")
 
     print("#" * 72)
     print("UNSCALED-X RELATIVE WEIGHT CUBIC FIT")
-    do_both([2, 1, -1, math.pi], range(100000), "minrel")
+    do_both([2, 1, -1, math.pi], range(N), "minrel")
 
     print("#" * 72)
     print("SCALED-X RELATIVE WEIGHT CUBIC FIT")
-    do_both([2, 1, -1, math.pi], [x * 1e-5 for x in range(100000)], "minrel")
+    do_both([2, 1, -1, math.pi], [x * 1e-5 for x in range(N)], "minrel")
 
     print("#" * 72)
     print("UNSCALED-X RELATIVE WEIGHT QUARTIC FIT")
-    do_both([0, 2, 1, -1, math.pi], range(100000), "minrel")
+    do_both([0, 2, 1, -1, math.pi], range(N), "minrel")
 
     print("#" * 72)
     print("SCALED-X RELATIVE WEIGHT QUARTIC FIT")
-    do_both([0, 2, 1, -1, math.pi], [x * 1e-5 for x in range(100000)], "minrel")
+    do_both([0, 2, 1, -1, math.pi], [x * 1e-5 for x in range(N)], "minrel")
 
     print("#" * 72)
     print("UNSCALED-X EQUAL WEIGHT 10TH DEGREE FIT")
-    do_both([0, 0, 0, 0, 0, 0, 0, 2, 1, -1, math.pi], range(100000), "equal")
+    do_both([0, 0, 0, 0, 0, 0, 0, 2, 1, -1, math.pi], range(N), "equal")
 
     print("#" * 72)
     print("SCALED-X EQUAL WEIGHT 10TH DEGREE FIT")
-    do_both([0, 0, 0, 0, 0, 0, 0, 2, 1, -1, math.pi], [x * 1e-5 for x in range(100000)], "equal")
+    do_both([0, 0, 0, 0, 0, 0, 0, 2, 1, -1, math.pi], [x * 1e-5 for x in range(N)], "equal")
 
     print("#" * 72)
     print("UNSCALED-X RELATIVE WEIGHT 10TH DEGREE FIT")
-    do_both([0, 0, 0, 0, 0, 0, 0, 2, 1, -1, math.pi], range(100000), "minrel")
+    do_both([0, 0, 0, 0, 0, 0, 0, 2, 1, -1, math.pi], range(N), "minrel")
 
     print("#" * 72)
     print("SCALED-X RELATIVE WEIGHT 10TH DEGREE FIT")
-    do_both([0, 0, 0, 0, 0, 0, 0, 2, 1, -1, math.pi], [x * 1e-5 for x in range(100000)], "minrel")
+    do_both([0, 0, 0, 0, 0, 0, 0, 2, 1, -1, math.pi], [x * 1e-5 for x in range(N)], "minrel")
 
 go()
 

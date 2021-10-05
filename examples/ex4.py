@@ -11,7 +11,7 @@ import sys
 
 sys.path.insert(0, "..")
 
-from cpolyfit import PolyfitPlan   ## pylint: disable=wrong-import-position
+import testlib as tl    ## pylint: disable=wrong-import-position
 
 def demo():
     "demo code"
@@ -29,7 +29,7 @@ def demo():
     #wv = array.array('d', [y**-2. for y in yv])
     wv = array.array('d', [1.] * len(xv))
 
-    plan = PolyfitPlan(3, xv, wv)
+    plan = tl.C.PolyfitPlan(3, xv, wv)
     fit  = plan.fit(yv)
     ev   = fit.evaluator()
 

@@ -7,17 +7,8 @@ from __future__ import print_function as _
 ## pylint: disable=invalid-name,bad-whitespace
 
 import math
-import sys
 
-sys.path.insert(0, "..")
-
-from polyfit import PolyfitPlan ## pylint: disable=wrong-import-position
-
-def flist(l):
-    "format a list to 15 decimal places"
-    if not isinstance(l, list):
-        l = [l]
-    return " ".join("%.15e" % x for x in l)
+import testlib as tl    ## pylint: disable=wrong-import-position
 
 def demo():
     "demo of the api"
@@ -51,7 +42,7 @@ def demo():
 
     ## perform the fit
     D    = len(cv) - 1
-    plan = PolyfitPlan(D, xv, wv)
+    plan = tl.p.PolyfitPlan(D, xv, wv)
     fit  = plan.fit(yv)
     ev   = fit.evaluator()
 
@@ -61,22 +52,22 @@ def demo():
     print("points", plan.npoints())
 
     ## print per-degree rms errors
-    print("erms  ", flist(fit.rms_errors()))
+    print("erms  ", tl.format_list(fit.rms_errors()))
 
     ## print a few values
     for i in range(4):
-        print("value  %.1f %s" % (xv[i], flist(ev(xv[i], nder=-1))))
+        print("value  %.1f %s" % (xv[i], tl.format_list(ev(xv[i], nder=-1))))
 
     ## print value and all derivatives for all degrees
     for i in range(D + 1):
-        print("deg    %d %s" % (i, flist(ev(xv[0], deg=i, nder=-1))))
+        print("deg    %d %s" % (i, tl.format_list(ev(xv[0], deg=i, nder=-1))))
 
     ## print coefficients for all degrees about (x - xv[0])
     for i in range(D + 1):
-        print("coefs  %d %s" % (i, flist(ev.coefs(xv[0], i))))
+        print("coefs  %d %s" % (i, tl.format_list(ev.coefs(xv[0], i))))
 
     ## coefs halfway through
-    print("coefs ", flist(ev.coefs(xv[N >> 1], deg)))
+    print("coefs ", tl.format_list(ev.coefs(xv[N >> 1], deg)))
 
 if __name__ == "__main__":
     demo()
