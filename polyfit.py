@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-"quad precision orthogonal polynomial least squares fitting"
+"quad-precision mantissa orthogonal polynomial least squares fitting"
 
 ## {{{ prologue
 from __future__ import print_function as _
