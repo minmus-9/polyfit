@@ -6,10 +6,17 @@ from __future__ import print_function as _
 ## pylint: disable=invalid-name,bad-whitespace
 
 from polyfit import (
-    zero, one, to_quad, to_float,
-    add, sub, div, mul,
-    vappend, vectorsum,
-    PolyfitBase
+    zero,
+    one,
+    to_dd,
+    to_float,
+    add,
+    sub,
+    div,
+    mul,
+    vappend,
+    vectorsum,
+    PolyfitBase,
 )
 
 __all__ = ["PolyplusIntegrator", "PolyplusQuadrature"]
@@ -29,10 +36,10 @@ class PolyplusIntegrator(PolyfitBase):
         degree.
         """
         if isinstance(data, dict):
-            self.data   = data
+            self.data = data
             self._coefs = data["coefs"]
         else:
-            self.data   = data.to_data()["fit"].copy()
+            self.data = data.to_data()["fit"].copy()
             self._coefs = coefs = data.evaluator().coefs(zero(), deg)
             self.data["coefs"] = coefs
 
@@ -40,14 +47,14 @@ class PolyplusIntegrator(PolyfitBase):
             uno = one()
             for j in range(deg, -1, -1):
                 i = deg - j
-                fac = div(uno, to_quad(j + 1))
+                fac = div(uno, to_dd(j + 1))
                 coefs[i] = mul(coefs[i], fac)
             ## there is an implied-zero constant term
 
     def qcoefs(self):
         """
         return the coefficients for the integrated polynomial
-        in quad precision.
+        in double-double precision.
         """
         return self._coefs + [zero()]
 
@@ -57,30 +64,37 @@ class PolyplusIntegrator(PolyfitBase):
 
     def __call__(self, x):
         """
-        return the quad-precision definite integral from 0 to x.
-        the return value is quad if x is quad.
+        return the double-double precision definite integral
+        from 0 to x.  the return value is double-double if x
+        is double-double.
         """
-        q   = to_quad(x)
+        q = to_dd(x)
         ret = zero()
         for c in self._coefs:
             ret = add(mul(ret, q), c)
         ## handle the implied zero constant term
         ret = mul(ret, q)
         return ret if isinstance(x, tuple) else to_float(ret)
+
+
 ## }}}
-## {{{ quad precision root finding using bisection
-def bis(    ## pylint: disable=too-many-arguments
-        func, a, fa, b, fb,
-        maxiter=108,    ## rel err >= 2**-107
-    ):
+## {{{ double-double precision root finding using bisection
+def bis(  ## pylint: disable=too-many-arguments
+    func,
+    a,
+    fa,
+    b,
+    fb,
+    maxiter=108,  ## rel err >= 2**-107
+):
     """
-    quad precision root finding using bisection
+    double-double precision root finding using bisection
     """
     ## this is over the top but works for its use
     ## in this module; don't use this for general
     ## root finding!
     assert to_float(mul(fa, fb)) < 0
-    half = to_quad(0.5)
+    half = to_dd(0.5)
     for _ in range(maxiter):
         c = mul(half, add(a, b))
         if c in (a, b):
@@ -95,6 +109,8 @@ def bis(    ## pylint: disable=too-many-arguments
         else:
             a, fa = c, fc
     return c
+
+
 ## }}}
 ## {{{ quadrature over wv[] and xv[]
 class PolyplusQuadrature(PolyfitBase):
@@ -133,11 +149,11 @@ class PolyplusQuadrature(PolyfitBase):
 
             data["x0"], data["x1"] = min(data["x"]), max(data["x"])
 
-            data["roots"]   = { 0: [ ] }
-            data["schemes"] = { }
+            data["roots"] = {0: []}
+            data["schemes"] = {}
 
         self.b, self.c, self.g = data["b"], data["c"], data["g"]
-        self.x0, self.x1 = to_quad(data["x0"]), to_quad(data["x1"])
+        self.x0, self.x1 = to_dd(data["x0"]), to_dd(data["x1"])
         self.the_roots = data["roots"]
         self.the_schemes = data["schemes"]
 
@@ -156,11 +172,11 @@ class PolyplusQuadrature(PolyfitBase):
         compute \sum_{i=1}^N w_i func(x_i) using the quadrature
         scheme \sum_{i=0}^{deg} H_i func(z_i). this is exact if
         func() is a poly of degree < 2D. func is assumed to take
-        and return a quad.
+        and return a double-double.
         """
-        v = [ ]
+        v = []
         for z, H in self.scheme(deg):
-            vappend(v, mul(H, to_quad(func(z))))
+            vappend(v, mul(H, to_dd(func(z))))
         return vectorsum(v)
 
     def roots(self, k):
@@ -180,18 +196,15 @@ class PolyplusQuadrature(PolyfitBase):
 
     def _phi_k(self, x, k):
         "internal: compute the k-th orthogonal poly at x"
-        x    = to_quad(x)
-        b    = self.b
-        c    = self.c
+        x = to_dd(x)
+        b = self.b
+        c = self.c
         pjm1 = zero()
-        pj   = one()
+        pj = one()
         for j in range(k):
-            pjp1 = sub(
-                mul(sub(x, b[j]), pj),
-                mul(c[j], pjm1)
-            )
+            pjp1 = sub(mul(sub(x, b[j]), pj), mul(c[j], pjm1))
             pjm1 = pj
-            pj   = pjp1
+            pj = pjp1
         return pj
 
     def _roots(self, k):
@@ -202,12 +215,12 @@ class PolyplusQuadrature(PolyfitBase):
         property
         """
         ranges = [self.x0] + self.roots(k - 1) + [self.x1]
-        ret    = [ ]
-        func   = lambda x: self._phi_k(x, k)
+        ret = []
+        func = lambda x: self._phi_k(x, k)
         for i in range(len(ranges) - 1):
-            a  = ranges[i]
+            a = ranges[i]
             fa = func(a)
-            b  = ranges[i + 1]
+            b = ranges[i + 1]
             fb = func(b)
             ret.append(bis(func, a, fa, b, fb))
         return ret
@@ -219,32 +232,29 @@ class PolyplusQuadrature(PolyfitBase):
         compute the quadrature scheme of order k using the
         christoffel-darboux identity
         """
-        b   = self.b
-        c   = self.c
-        g   = self.g
+        b = self.b
+        c = self.c
+        g = self.g
         uno = one()
-        ret = [ ]
+        ret = []
         for r in self.roots(k):
-            v    = [ ]
+            v = []
             pjm1 = zero()
-            pj   = one()
+            pj = one()
             ## loop over polys
             for j in range(k):
                 ## add in the next term
                 u = div(mul(pj, pj), g[j + 1])
                 vappend(v, u)
                 ## compute the next poly
-                pjp1 = sub(
-                    mul(sub(r, b[j]), pj),
-                    mul(c[j], pjm1)
-                )
+                pjp1 = sub(mul(sub(r, b[j]), pj), mul(c[j], pjm1))
                 pjm1 = pj
-                pj   = pjp1
+                pj = pjp1
             ## save the root and christoffel number
-            ret.append(
-                (r, div(uno, vectorsum(v)))
-            )
+            ret.append((r, div(uno, vectorsum(v))))
         return ret
+
+
 ## }}}
 
 ## EOF

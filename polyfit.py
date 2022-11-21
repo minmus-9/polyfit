@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-"quad-precision mantissa orthogonal polynomial least squares fitting"
+"double-double precision mantissa orthogonal polynomial least squares fitting"
 
 ## {{{ prologue
 from __future__ import print_function as _
@@ -12,21 +12,36 @@ from __future__ import print_function as _
 import math
 
 __all__ = [
-    "PolyfitPlan", "PolyfitFit", "PolyfitEvaluator",
-    "polyfit_plan", "polyfit_fit", "polyfit_eval",
-    "polyfit_coefs", "polyfit_maxdeg", "polyfit_npoints",
-
-    "zero", "one", "vappend", "vectorsum", "to_quad",
-    "to_float", "add", "sub", "mul", "div", "sqrt",
+    "PolyfitPlan",
+    "PolyfitFit",
+    "PolyfitEvaluator",
+    "polyfit_plan",
+    "polyfit_fit",
+    "polyfit_eval",
+    "polyfit_coefs",
+    "polyfit_maxdeg",
+    "polyfit_npoints",
+    "zero",
+    "one",
+    "vappend",
+    "vectorsum",
+    "to_dd",
+    "to_float",
+    "add",
+    "sub",
+    "mul",
+    "div",
+    "sqrt",
 ]
 ## }}}
-## {{{ quad precision routines from ogita et al
+## {{{ double-double precision routines from ogita et al
 def twosum(a, b):
     "6 flops, algorithm 3.1 from ogita"
     x = a + b
     z = x - a
     y = (a - (x - z)) + (b - z)
     return x, y
+
 
 def twodiff(a, b):
     "6 flops, subtraction version of twosum()"
@@ -35,30 +50,34 @@ def twodiff(a, b):
     y = (a - (x - z)) - (b + z)
     return x, y
 
-def split(a, FACTOR = 1. + 2. ** 27):
+
+def split(a, FACTOR=1.0 + 2.0**27):
     "4 flops, algorithm 3.2 from ogita"
     c = FACTOR * a
     x = c - (c - a)
     y = a - x
     return x, y
 
+
 def twoproduct(a, b):
     "23 flops, algorithm 3.3 from ogita"
-    x      = a * b
+    x = a * b
     a1, a2 = split(a)
     b1, b2 = split(b)
-    y      = a2 * b2 - (x - a1 * b1 - a2 * b1 - a1 * b2)
+    y = a2 * b2 - (x - a1 * b1 - a2 * b1 - a1 * b2)
     return twosum(x, y)
+
 
 def sum2s(p):
     "7n-1 flops, algorithm 4.1 from ogita"
     if not p:
         return zero()
-    pi, sigma = p[0], 0.
+    pi, sigma = p[0], 0.0
     for i in range(1, len(p)):
-        pi, q  = twosum(pi, p[i])
+        pi, q = twosum(pi, p[i])
         sigma += q
     return twosum(pi, sigma)
+
 
 def vsum(p):
     "6(n-1) flops, algorithm 4.3 from ogita"
@@ -68,93 +87,110 @@ def vsum(p):
         im1 = i
     return p
 
+
 def sumkcore(p, K):
     "6(K-1)(n-1) flops, algorithm 4.8 from ogita"
     for _ in range(K - 1):
         p = vsum(p)
     return p
 
+
 def sumk(p, K):
     "(6K+1)(n-1)+6 flops, algorithm 4.8 from ogita"
     return sum2s(sumkcore(p, K))
 
+
 def vectorsum(vec):
     "accurately sum a vector of floats, 19n-13 flops"
     return sumk(vec, K=3)
+
+
 ## }}}
 ## {{{ utility functions
 def zero():
-    "return quad precision 0"
-    return (0., 0.)
+    "return double-double precision 0"
+    return (0.0, 0.0)
+
 
 def one():
-    "return quad precision 1"
-    return (1., 0.)
+    "return double-double precision 1"
+    return (1.0, 0.0)
+
 
 def vappend(vec, x):
     """
-    append quad precision number to vector. this is used
+    append double-double precision number to vector. this is used
     for vectorsum():
 
         v = [ ]
         for x in y:
-            quad = ...
-            vappend(v, quad)
+            dd = ...
+            vappend(v, dd)
         s = vectorsum(v)
 
     vectorsum() is more accurate than using add() in a loop.
     """
     vec.extend(x)
 
-def to_quad(x):
-    "convert float or quad to quad"
-    return x if isinstance(x, tuple) else (float(x), 0.)
+
+def to_dd(x):
+    "convert float or double-double to double-double"
+    return x if isinstance(x, tuple) else (float(x), 0.0)
+
 
 def to_float(x):
-    "convert quad to float"
+    "convert double-double to float"
     return x[0] if isinstance(x, tuple) else float(x)
+
+
 ## }}}
-## {{{ quad precision arithmetic
+## {{{ double-double precision arithmetic
 def add(x, y):
-    "add two quads, 14 flops"
+    "add two double-doubles, 14 flops"
     x, xx = x
     y, yy = y
     z, zz = twosum(x, y)
     return twosum(z, zz + xx + yy)
 
+
 def sub(x, y):
-    "subtract 2 quads, 14 flops"
+    "subtract 2 double-doubles, 14 flops"
     x, xx = x
     y, yy = y
     z, zz = twodiff(x, y)
     return twosum(z, zz + xx - yy)
 
+
 def mul(x, y):
-    "multiply 2 quads, 33 flops"
+    "multiply 2 double-doubles, 33 flops"
     x, xx = x
     y, yy = y
     z, zz = twoproduct(x, y)
-    zz   += xx * y + x * yy
+    zz += xx * y + x * yy
     return twosum(z, zz)
 
+
 def div(x, y):
-    "divide 2 quads, 36 flops, from dekker"
+    "divide 2 double-doubles, 36 flops, from dekker"
     x, xx = x
     y, yy = y
-    c     = x / y
+    c = x / y
     u, uu = twoproduct(c, y)
-    cc    = (x - u - uu + xx - c * yy) / y
+    cc = (x - u - uu + xx - c * yy) / y
     return twosum(c, cc)
 
+
 def sqrt(x):
-    "square root of a quad, 35 flops, from dekker"
+    "square root of a double-double, 35 flops, from dekker"
     x, xx = x
     if not (x or xx):
         return zero()
-    c     = math.sqrt(x)
+    c = math.sqrt(x)
     u, uu = twoproduct(c, c)
-    cc    = (x - u - uu + xx) * 0.5 / c
+    cc = (x - u - uu + xx) * 0.5 / c
     return twosum(c, cc)
+
+
 ## }}}
 ## {{{ polyfit_plan
 def polyfit_plan(maxdeg, xv, wv):
@@ -167,31 +203,31 @@ def polyfit_plan(maxdeg, xv, wv):
     """
     ## pylint: disable=too-many-locals
 
-    ## convert to quad
-    xv = [to_quad(x) for x in xv]
-    wv = [to_quad(w) for w in wv]
+    ## convert to double-double
+    xv = [to_dd(x) for x in xv]
+    wv = [to_dd(w) for w in wv]
     ## build workspaces and result object
     N = len(xv)
-    b = [ ]             ## recurrence coefs b_k
-    c = [ ]             ## recurrence coefs c_k
-    g = [one()]         ## \gamma_k^2 \equiv (\phi_k, \phi_k)
+    b = []  ## recurrence coefs b_k
+    c = []  ## recurrence coefs c_k
+    g = [one()]  ## \gamma_k^2 \equiv (\phi_k, \phi_k)
     r = {
-        "D": maxdeg,    ## max fit degree
-        "N": N,         ## number of data points
-        "b": b,         ## coefficients b_k
-        "c": c,         ## coefficients c_k
-        "g": g,         ## normalization constants g_k
-        "x": xv,        ## x values, needed for polyfit_fit
-        "w": wv         ## y values, needed for polyfit_fit
+        "D": maxdeg,  ## max fit degree
+        "N": N,  ## number of data points
+        "b": b,  ## coefficients b_k
+        "c": c,  ## coefficients c_k
+        "g": g,  ## normalization constants g_k
+        "x": xv,  ## x values, needed for polyfit_fit
+        "w": wv,  ## y values, needed for polyfit_fit
     }
     ## \phi_{k-1} and \phi_k
-    phi_km1 = [zero()] * N ## \phi_{-1}
-    phi_k   = [one()]  * N ## \phi_0
+    phi_km1 = [zero()] * N  ## \phi_{-1}
+    phi_k = [one()] * N  ## \phi_0
 
     for k in range(maxdeg + 1):
-        bvec, gvec = [ ], [ ]
+        bvec, gvec = [], []
         for i in range(N):
-            p   = phi_k[i]
+            p = phi_k[i]
             ## w_i \phi_k^2(x_i)
             wp2 = mul(wv[i], mul(p, p))
             ## w_i x_i \phi_k^2(x_i)
@@ -212,14 +248,15 @@ def polyfit_plan(maxdeg, xv, wv):
                 ## \phi_{k+1}(x_i) = (x_i - b_k) \phi_k(x_i) -
                 ##                     c_k \phi_{k-1}(x_i)
                 phi_kp1 = sub(
-                    mul(sub(xv[i], bk), phi_k[i]),
-                    mul(ck, phi_km1[i])
+                    mul(sub(xv[i], bk), phi_k[i]), mul(ck, phi_km1[i])
                 )
                 ## rotate the polys
                 phi_km1[i] = phi_k[i]
-                phi_k[i]   = phi_kp1
-    c.append(zero())    ## needed in polyfit_eval
+                phi_k[i] = phi_kp1
+    c.append(zero())  ## needed in polyfit_eval
     return r
+
+
 ## }}}
 ## {{{ polyfit_fit
 def polyfit_fit(plan, yv):
@@ -233,19 +270,19 @@ def polyfit_fit(plan, yv):
     ## pylint: disable=too-many-locals
     N, D = plan["N"], plan["D"]
     b, c = plan["b"], plan["c"]
-    g    = plan["g"]
-    wv   = plan["w"]
-    xv   = plan["x"]
+    g = plan["g"]
+    wv = plan["w"]
+    xv = plan["x"]
 
-    a, e = [ ], [ ]                 ## fit coefs and rms errors
-    rv   = [to_quad(y) for y in yv] ## residuals
+    a, e = [], []  ## fit coefs and rms errors
+    rv = [to_dd(y) for y in yv]  ## residuals
 
     ## \phi_{k-1} and \phi_k
     phi_km1 = [zero()] * N
-    phi_k   = [one()]  * N
+    phi_k = [one()] * N
     for k in range(D + 1):
         ## compute ak as (residual, \phi_k) / (\phi_k, \phi_k)
-        avec = [ ]
+        avec = []
         for i in range(N):
             vappend(avec, mul(wv[i], mul(rv[i], phi_k[i])))
         ak = div(vectorsum(avec), g[k + 1])
@@ -253,12 +290,11 @@ def polyfit_fit(plan, yv):
 
         ## remove the \phi_k component from the residual
         ## compute rms error for this degree
-        evec = [ ]
+        evec = []
         for i in range(N):
             rv[i] = r = sub(rv[i], mul(ak, phi_k[i]))
             vappend(evec, mul(r, r))
-        e.append(sqrt(div(vectorsum(evec), to_quad(N))))
-
+        e.append(sqrt(div(vectorsum(evec), to_dd(N))))
 
         ## if we aren't done, update pk[] and pkm1[]
         ## for the next round
@@ -267,23 +303,24 @@ def polyfit_fit(plan, yv):
                 ## \phi_{k+1}(x_i) = (x_i - b_k) \phi_k(x_i) -
                 ##                     c_k \phi_{k-1}(x_i)
                 phi_kp1 = sub(
-                    mul(sub(xv[i], b[k]), phi_k[i]),
-                    mul(c[k], phi_km1[i])
+                    mul(sub(xv[i], b[k]), phi_k[i]), mul(c[k], phi_km1[i])
                 )
                 ## rotate the polys
                 phi_km1[i] = phi_k[i]
-                phi_k[i]   = phi_kp1
+                phi_k[i] = phi_kp1
     ## return fit data
     return {
-        "a": a,     ## orthogonal poly coefs
-        "e": e,     ## per-degree rms errors
-        "r": rv     ## per-point residuals
+        "a": a,  ## orthogonal poly coefs
+        "e": e,  ## per-degree rms errors
+        "r": rv,  ## per-point residuals
     }
+
+
 ## }}}
 ## {{{ polyfit_eval
-def polyfit_eval(   ## pylint: disable=too-many-arguments
-        plan, fit, x, deg=-1, nder=0, scalar=True
-    ):
+def polyfit_eval(  ## pylint: disable=too-many-arguments
+    plan, fit, x, deg=-1, nder=0, scalar=True
+):
     """
     given a plan, a fit data object returned by
     polyfit_fit, a point x, a least squares fit degree deg,
@@ -296,11 +333,12 @@ def polyfit_eval(   ## pylint: disable=too-many-arguments
     ndeg derivatives of the least squares polynomial of
     degree deg.
 
-    returns a list of quads whose first element is the value
-    of the least squares polynomial of degree deg at x.
-    subsequent elements are the requested derivatives. if zero
-    derivatives are requested, the scalar function value
-    is returned. if x is a quad, quads are returned.
+    returns a list of double-doubles whose first element is
+    the value of the least squares polynomial of degree deg at
+    x.  subsequent elements are the requested derivatives. if
+    zero derivatives are requested, the scalar function value
+    is returned. if x is a double-double, double-doubles are
+    returned.
     """
     ## pylint: disable=too-many-locals
     a, b, c, D = fit["a"], plan["b"], plan["c"], plan["D"]
@@ -311,27 +349,24 @@ def polyfit_eval(   ## pylint: disable=too-many-arguments
         nder = deg
 
     ## z_k^{(j-1)} and z_k^{(j)} for clenshaw's recurrence
-    zjm1 = a[:deg+1] + [zero(), zero()] ## init to a_k
-    zj   = [zero()] * (deg + 3)
+    zjm1 = a[: deg + 1] + [zero(), zero()]  ## init to a_k
+    zj = [zero()] * (deg + 3)
 
-    fac   = one()            ## j! factor
-    zeds  = [zero(), zero()]
-    lim   = min(deg, nder)   ## max degree to compute
-    x, x0 = to_quad(x), x
-    ret   = [ ]              ## return value
+    fac = one()  ## j! factor
+    zeds = [zero(), zero()]
+    lim = min(deg, nder)  ## max degree to compute
+    x, x0 = to_dd(x), x
+    ret = []  ## return value
     for j in range(lim + 1):
         if j > 1:
-            fac = mul(fac, to_quad(j))
+            fac = mul(fac, to_dd(j))
         ## compute z_j^{(j)} using the recurrence
         for k in range(deg, j - 1, -1):
             t = k - j
             ## z_k^{(j)} = z_k^{(j-1)} +
             ##              (x - b_t) z_{k+1}^{(j)} -
             ##              c_{t+1} z_{k+2}^{(j)}
-            tmp = sub(
-                mul(sub(x, b[t]), zj[k + 1]),
-                mul(c[t + 1], zj[k + 2])
-            )
+            tmp = sub(mul(sub(x, b[t]), zj[k + 1]), mul(c[t + 1], zj[k + 2]))
             zj[k] = add(zjm1[k], tmp)
         ## save j! z_j^{(j)}
         ret.append(mul(fac, zj[j]))
@@ -343,44 +378,47 @@ def polyfit_eval(   ## pylint: disable=too-many-arguments
             zj[-2:] = zeds
     if nder > deg:
         ret += [zero()] * (nder - deg)
-    ## returns quad precision (for polyfit_coefs)
-    ret = ret if isinstance(x0, tuple) else \
-          [to_float(r) for r in ret]
+    ## returns double-double precision (for polyfit_coefs)
+    ret = ret if isinstance(x0, tuple) else [to_float(r) for r in ret]
     return ret[0] if scalar and len(ret) == 1 else ret
+
+
 ## }}}
 ## {{{ polyfit_coefs
-def polyfit_coefs(plan, fit, x0=0., deg=-1):
+def polyfit_coefs(plan, fit, x0=0.0, deg=-1):
     """
     given a plan, a set of expansion coefficients generated
     by polyfit_fit, a center point x0, and a least squares
     fit degree, return the coefficients of powers of (x - x0)
     with the highest powers first. if deg is negative (the
-    default), use maxdeg instead. the coefficients are quad
-    precision.
+    default), use maxdeg instead. the coefficients are double-
+    double precision.
     """
     ## get value and derivs, divide by j!
-    vals = polyfit_eval(
-        plan, fit, to_quad(x0), deg, deg,
-        scalar=False
-    )
-    fac  = one()
+    vals = polyfit_eval(plan, fit, to_dd(x0), deg, deg, scalar=False)
+    fac = one()
     for j in range(2, len(vals)):
-        fac     = div(fac, to_quad(j))
+        fac = div(fac, to_dd(j))
         vals[j] = mul(vals[j], fac)
     ## get highest power first
     vals.reverse()
-    return vals if isinstance(x0, tuple) else \
-        [to_float(v) for v in vals]
+    return vals if isinstance(x0, tuple) else [to_float(v) for v in vals]
+
+
 ## }}}
 ## {{{ polyfit_maxdeg
 def polyfit_maxdeg(plan):
     "return the maximum possible fit degree"
     return plan["D"]
+
+
 ## }}}
 ## {{{ polyfit_npoints
 def polyfit_npoints(plan):
     "return the number of data points being fit"
     return plan["N"]
+
+
 ## }}}
 ## {{{ Polyfit classes
 class PolyfitBase(object):
@@ -400,6 +438,7 @@ class PolyfitBase(object):
     def from_data(cls, data):
         "return instance from serializable data"
         return cls(data=data)
+
 
 class PolyfitEvaluator(PolyfitBase):
     """
@@ -441,14 +480,18 @@ class PolyfitEvaluator(PolyfitBase):
         plan, fit = self.data["plan"], self.data["fit"]
         return polyfit_coefs(plan, fit, x0, deg)
 
+
 class PolyfitFit(PolyfitBase):
     """
     orthogonal polynomial fitter returned by PolyfitPlan.fit()
     """
 
     def __init__(self, plan=None, yv=None, data=None):
-        self.data = data if data else \
-            { "plan": plan.copy(), "fit": polyfit_fit(plan, yv) }
+        self.data = (
+            data
+            if data
+            else {"plan": plan.copy(), "fit": polyfit_fit(plan, yv)}
+        )
         ## no need for these now that we have a fit, saves a lot
         ## of serialization space
         self.data["plan"].pop("x", None)
@@ -473,6 +516,7 @@ class PolyfitFit(PolyfitBase):
         """
         return [to_float(e) for e in self.data["fit"]["e"]]
 
+
 class PolyfitPlan(PolyfitBase):
     """
     orthogonal polynomial least squares planning class. you must
@@ -480,9 +524,7 @@ class PolyfitPlan(PolyfitBase):
     multiple fits of the same xv[] and wv[].
     """
 
-    def __init__(
-            self, maxdeg=None, xv=None, wv=None, data=None
-        ):
+    def __init__(self, maxdeg=None, xv=None, wv=None, data=None):
         """
         given x values in xv[] and positive weights in wv[],
         make a plan to perform least squares fitting up to
@@ -492,8 +534,7 @@ class PolyfitPlan(PolyfitBase):
         an expansion in xv- and wv-specific orthogonal
         polynomials".
         """
-        self.data = data if data else \
-            { "plan": polyfit_plan(maxdeg, xv, wv) }
+        self.data = data if data else {"plan": polyfit_plan(maxdeg, xv, wv)}
 
     def fit(self, yv):
         """
@@ -510,6 +551,8 @@ class PolyfitPlan(PolyfitBase):
     def npoints(self):
         "return the number of fit points"
         return polyfit_npoints(self.data["plan"])
+
+
 ## }}}
 
 ## EOF
