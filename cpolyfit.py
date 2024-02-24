@@ -31,36 +31,43 @@ def isarray(a, minelts=None, maxelts=None):
         raise ValueError("array too long")
     return a
 
+
 def oserr():
     "raise OSError using errno"
     err = ctypes.get_errno()
     raise OSError(err, os.strerror(err))
+
+
 ## }}}
 ## {{{ low level glue
 _libpolyfit = ctypes.CDLL(
-    os.path.join(
-        os.path.dirname(
-            os.path.abspath(__file__)
-        ),
-        "libpolyfit.so"
-    )
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), "libpolyfit.so")
 )
 
 ## {{{ polyfit_free
 _polyfit_free = _libpolyfit.polyfit_free
 _polyfit_free.argtypes = [ctypes.c_void_p]
-_polyfit_free.restype  = None
+_polyfit_free.restype = None
+
 
 def polyfit_free(fit):
     "free fit data"
     if not isinstance(fit, int):
         raise TypeError("bad fit type")
     _polyfit_free(fit)
+
+
 ## }}}
 ## {{{ polyfit_plan
 _polyfit_plan = _libpolyfit.polyfit_plan
-_polyfit_plan.argtypes = [ctypes.c_int, ctypes.c_void_p, ctypes.c_void_p, ctypes.c_int]
-_polyfit_plan.restype  = ctypes.c_void_p
+_polyfit_plan.argtypes = [
+    ctypes.c_int,
+    ctypes.c_void_p,
+    ctypes.c_void_p,
+    ctypes.c_int,
+]
+_polyfit_plan.restype = ctypes.c_void_p
+
 
 def polyfit_plan(degree, xv, wv):
     "allocate data for a fit"
@@ -75,17 +82,18 @@ def polyfit_plan(degree, xv, wv):
         raise ValueError("bad wv")
     xa, _ = xv.buffer_info()
     wa, _ = wv.buffer_info()
-    plan  = _polyfit_plan(degree, xa, wa, N)
+    plan = _polyfit_plan(degree, xa, wa, N)
     if not plan:
         oserr()
     return plan
+
+
 ## }}}
 ## {{{ polyfit_fit
 _polyfit_fit = _libpolyfit.polyfit_fit
-_polyfit_fit.argtypes = [
-    ctypes.c_void_p, ctypes.c_void_p
-]
+_polyfit_fit.argtypes = [ctypes.c_void_p, ctypes.c_void_p]
 _polyfit_fit.restype = ctypes.c_void_p
+
 
 def polyfit_fit(plan, yv):
     "fit a poly to data"
@@ -94,15 +102,18 @@ def polyfit_fit(plan, yv):
     N = polyfit_npoints(plan)
     isarray(yv, N, N)
     ya, _ = yv.buffer_info()
-    fit   = _polyfit_fit(plan, ya)
+    fit = _polyfit_fit(plan, ya)
     if not fit:
         oserr()
     return fit
+
+
 ## }}}
 ## {{{ polyfit_evaluator
 _polyfit_evaluator = _libpolyfit.polyfit_evaluator
 _polyfit_evaluator.argtypes = [ctypes.c_void_p]
-_polyfit_evaluator.restype  = ctypes.c_void_p
+_polyfit_evaluator.restype = ctypes.c_void_p
+
 
 def polyfit_evaluator(fit):
     "return an evaluator"
@@ -112,14 +123,20 @@ def polyfit_evaluator(fit):
     if not ret:
         oserr()
     return ret
+
+
 ## }}}
 ## {{{ polyfit_eval
 _polyfit_eval = _libpolyfit.polyfit_eval
 _polyfit_eval.argtypes = [
-    ctypes.c_void_p, ctypes.c_double, ctypes.c_int,
-    ctypes.c_void_p, ctypes.c_int
+    ctypes.c_void_p,
+    ctypes.c_double,
+    ctypes.c_int,
+    ctypes.c_void_p,
+    ctypes.c_int,
 ]
 _polyfit_eval.restype = ctypes.c_int
+
 
 def polyfit_eval(evaluator, x, degree, nderiv):
     "eval poly and derivatives at x"
@@ -138,18 +155,24 @@ def polyfit_eval(evaluator, x, degree, nderiv):
         degree = D
     if nderiv < 0:
         nderiv = degree
-    ret   = array.array("d", [0] * (1 + nderiv))
+    ret = array.array("d", [0] * (1 + nderiv))
     ra, _ = ret.buffer_info()
     if _polyfit_eval(evaluator, x, degree, ra, nderiv) < 0:
         oserr()
     return ret
+
+
 ## }}}
 ## {{{ polyfit_coefs
 _polyfit_coefs = _libpolyfit.polyfit_coefs
 _polyfit_coefs.argtypes = [
-    ctypes.c_void_p, ctypes.c_double, ctypes.c_int, ctypes.c_void_p
+    ctypes.c_void_p,
+    ctypes.c_double,
+    ctypes.c_int,
+    ctypes.c_void_p,
 ]
 _polyfit_coefs.restype = ctypes.c_int
+
 
 def polyfit_coefs(evaluator, x, degree):
     "coefs poly and derivatives at x"
@@ -164,60 +187,74 @@ def polyfit_coefs(evaluator, x, degree):
         raise ValueError("bad degree")
     if degree < 0:
         degree = D
-    ret   = array.array("d", [0] * (1 + degree))
+    ret = array.array("d", [0] * (1 + degree))
     ra, _ = ret.buffer_info()
     _polyfit_coefs(evaluator, x, degree, ra)
     return ret
+
+
 ## }}}
 ## {{{ polyfit_npoints
 _polyfit_npoints = _libpolyfit.polyfit_npoints
 _polyfit_npoints.argtypes = [ctypes.c_void_p]
-_polyfit_npoints.restype  = ctypes.c_int
+_polyfit_npoints.restype = ctypes.c_int
+
 
 def polyfit_npoints(obj):
     "return #points in fit"
     if not isinstance(obj, int):
         raise TypeError("bad fit type")
     return _polyfit_npoints(obj)
+
+
 ## }}}
 ## {{{ polyfit_maxdeg
 _polyfit_maxdeg = _libpolyfit.polyfit_maxdeg
 _polyfit_maxdeg.argtypes = [ctypes.c_void_p]
-_polyfit_maxdeg.restype  = ctypes.c_int
+_polyfit_maxdeg.restype = ctypes.c_int
+
 
 def polyfit_maxdeg(obj):
     "return max degree of fit"
     if not isinstance(obj, int):
         raise TypeError("bad fit type")
     return _polyfit_maxdeg(obj)
+
+
 ## }}}
 ## {{{ polyfit_resids
 _polyfit_res = _libpolyfit.polyfit_resids
 _polyfit_res.argtypes = [ctypes.c_void_p, ctypes.c_void_p]
-_polyfit_res.restype  = ctypes.c_void_p
+_polyfit_res.restype = ctypes.c_void_p
+
 
 def polyfit_resids(fit):
     "return residuals for the maxdeg fit"
     if not isinstance(fit, int):
         raise TypeError("bad fit type")
-    ret   = array.array("d", [0] * polyfit_npoints(fit))
+    ret = array.array("d", [0] * polyfit_npoints(fit))
     ra, _ = ret.buffer_info()
     _polyfit_res(fit, ra)
     return ret
+
+
 ## }}}
 ## {{{ polyfit_rms_errs
 _polyfit_rms_errs = _libpolyfit.polyfit_rms_errs
 _polyfit_rms_errs.argtypes = [ctypes.c_void_p, ctypes.c_void_p]
-_polyfit_rms_errs.restype  = ctypes.c_void_p
+_polyfit_rms_errs.restype = ctypes.c_void_p
+
 
 def polyfit_rms_errs(fit):
     "return rms fit errors per degree"
     if not isinstance(fit, int):
         raise TypeError("bad fit type")
-    ret   = array.array("d", [0] * (polyfit_maxdeg(fit) + 1))
+    ret = array.array("d", [0] * (polyfit_maxdeg(fit) + 1))
     ra, _ = ret.buffer_info()
     _polyfit_rms_errs(fit, ra)
     return ret
+
+
 ## }}}
 ## }}}
 ## {{{ class-based interface
@@ -271,6 +308,7 @@ class PolyfitEvaluator(object):
         """
         return polyfit_coefs(self.eval, x0, deg)
 
+
 class PolyfitFit(object):
     """
     orthogonal polynomial fitter returned by PolyfitPlan.fit()
@@ -308,6 +346,7 @@ class PolyfitFit(object):
         to detect overfitting.
         """
         return polyfit_rms_errs(self.fit)
+
 
 class PolyfitPlan(object):
     """
@@ -354,6 +393,8 @@ class PolyfitPlan(object):
     def npoints(self):
         "return the number of fit points"
         return polyfit_npoints(self.plan)
+
+
 ## }}}
 
 ## EOF
