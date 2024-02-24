@@ -31,9 +31,9 @@ def dvec(v):
     "convert vector to float"
     return [p.to_float(x) for x in v]
 
-def qvec(v):
-    "convert vector to quad"
-    return [p.to_quad(x) for x in v]
+def ddpvec(v):
+    "convert vector to ddp"
+    return [p.to_ddp(x) for x in v]
 
 def deval(x, cofs):
     "evaluate the model poly in double prec"
@@ -43,21 +43,21 @@ def deval(x, cofs):
         r += cof
     return r
 
-def qeval(x, cofs):
-    "evaluate the model poly in quad prec"
-    x = p.to_quad(x)
+def ddpeval(x, cofs):
+    "evaluate the model poly in DDP"
+    x = p.to_ddp(x)
     r = p.zero()
     for cof in cofs:
         r = p.add(p.mul(r, x), cof)
     return r
 
-def qevald(x, cofs):
-    "evaluate the model poly in quad prec, return float"
+def ddpevald(x, cofs):
+    "evaluate the model poly in DDP, return float"
     return p.to_float(qeval(x, cofs))
 
 def qx_to_the_k(x, k):
-    "compute x**k in quad precision"
-    x   = p.to_quad(x)
+    "compute x**k in DDP"
+    x   = p.to_ddp(x)
     ret = p.one()
     while k:
         if k & 1:
@@ -85,7 +85,7 @@ def bincof(N, K):
     return fac(N) // fac(K) // fac(N - K)
 
 def itoq(N):
-    "integer to quad"
+    "integer to DDP"
     x = float(N)
     return (x, N - x)
 
