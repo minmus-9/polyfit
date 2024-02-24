@@ -4,7 +4,7 @@
 
 from __future__ import print_function
 
-## pylint: disable=invalid-name,bad-whitespace
+## pylint: disable=invalid-name,bad-whitespace,consider-using-f-string
 
 import array
 import math
@@ -12,49 +12,51 @@ import time
 
 import testlib as tl
 
-#chofit = tl.n.chofit
+# chofit = tl.n.chofit
 chofit = tl.c.chofit
+
 
 def printfit(fit, xv, yv, dt, tag=""):
     ## pylint: disable=too-many-locals
     "print polyfit output"
     tag = (": " + tag) if tag else ""
-    ev  = fit.evaluator()
+    ev = fit.evaluator()
     print("polyfit%s: dt %.4e" % (tag, dt))
     print("                  -max rel err-")
     print("deg     erms      erel     indx    coefs")
     errs = fit.rms_errors()
     for i, err in enumerate(errs):
-        cofs = ev.coefs(deg=i, x0=0.)
-        maxrelerr, maxat = -1., None
+        cofs = ev.coefs(deg=i, x0=0.0)
+        maxrelerr, maxat = -1.0, None
         for j, x in enumerate(xv):
             exp = yv[j]
             obs = ev(x, deg=i)
-            rel = abs(obs / exp - 1.)
+            rel = abs(obs / exp - 1.0)
             if rel > maxrelerr:
                 maxrelerr, maxat = rel, j
         print(
-            " %2d   %.1e   %.1e   %6d   %s" % \
-            (i, err, maxrelerr, maxat, cofs)
+            " %2d   %.1e   %.1e   %6d   %s" % (i, err, maxrelerr, maxat, cofs)
         )
     print()
+
 
 def do_polyfit(cofs, xv, wv=None):
     "compute and print polyfit"
     yv = [tl.deval(x, cofs) for x in xv]
     if (wv is None) or (isinstance(wv, str) and wv == "equal"):
         tag = "unity weights"
-        wv  = array.array('d', [1.] * len(xv))
+        wv = array.array("d", [1.0] * len(xv))
     elif isinstance(wv, str) and wv == "minrel":
         tag = "minrel weights"
-        wv  = array.array('d', [y**-2. for y in yv])
+        wv = array.array("d", [y**-2.0 for y in yv])
     else:
         tag = "custon weights"
-    t0   = time.time()
+    t0 = time.time()
     plan = tl.p.PolyfitPlan(len(cofs) - 1, xv, wv)
-    fit  = plan.fit(yv)
-    dt   = time.time() - t0
+    fit = plan.fit(yv)
+    dt = time.time() - t0
     printfit(fit, xv, yv, dt, tag)
+
 
 def do_numpy(cofs, xv, wv=None):
     ## pylint: disable=too-many-locals
@@ -62,40 +64,42 @@ def do_numpy(cofs, xv, wv=None):
     yv = [tl.deval(x, cofs) for x in xv]
     if (wv is None) or (isinstance(wv, str) and wv == "equal"):
         tag = "equal weights"
-        wv  = [1.] * len(xv)
+        wv = [1.0] * len(xv)
     elif isinstance(wv, str) and wv == "minrel":
         tag = "minrel weights"
-        wv  = [y**-2. for y in yv]
+        wv = [y**-2.0 for y in yv]
     else:
         tag = "custom weights"
-    t0   = time.time()
+    t0 = time.time()
     cofs = chofit(xv, yv, wv, D=len(cofs) - 1)
-    dt   = time.time() - t0
-    tag  = (": " + tag) if tag else ""
+    dt = time.time() - t0
+    tag = (": " + tag) if tag else ""
     print("numpy%s: dt %.4e" % (tag, dt))
     print("                  -max rel err-")
     print("deg     erms      erel     indx    coefs")
-    pred = [tl.qevald(x, cofs) for x in xv]
-    rms  = sum((o - e)**2 for o, e in zip(pred, yv))
-    rms  = math.sqrt(rms / len(xv))
-    maxrelerr, maxat = -1., 0
+    pred = [tl.ddpevald(x, cofs) for x in xv]
+    rms = sum((o - e) ** 2 for o, e in zip(pred, yv))
+    rms = math.sqrt(rms / len(xv))
+    maxrelerr, maxat = -1.0, 0
     for j in range(len(xv)):
         exp = yv[j]
         obs = pred[j]
-        rel = abs(obs / exp - 1.)
+        rel = abs(obs / exp - 1.0)
         if rel > maxrelerr:
             maxrelerr, maxat = rel, j
     print(
-        " %2d   %.1e   %.1e   %6d   %s" % \
-        (len(cofs)-1, rms, maxrelerr, maxat, tl.dvec(cofs))
+        " %2d   %.1e   %.1e   %6d   %s"
+        % (len(cofs) - 1, rms, maxrelerr, maxat, tl.dvec(cofs))
     )
     print()
 
+
 def do_both(cofs, xv, wv=None):
     "do polyfit and numpy"
-    xv = array.array('d', xv)
+    xv = array.array("d", xv)
     do_polyfit(cofs, xv, wv)
     do_numpy(cofs, xv, wv)
+
 
 def go():
     "run the tests"
@@ -138,8 +142,11 @@ def go():
 
     print("#" * 72)
     print("SCALED-X EQUAL WEIGHT 10TH DEGREE FIT")
-    do_both([0, 0, 0, 0, 0, 0, 0, 2, 1, -1, math.pi],
-            [x * 1e-5 for x in range(N)], "equal")
+    do_both(
+        [0, 0, 0, 0, 0, 0, 0, 2, 1, -1, math.pi],
+        [x * 1e-5 for x in range(N)],
+        "equal",
+    )
 
     print("#" * 72)
     print("UNSCALED-X RELATIVE WEIGHT 10TH DEGREE FIT")
@@ -147,8 +154,12 @@ def go():
 
     print("#" * 72)
     print("SCALED-X RELATIVE WEIGHT 10TH DEGREE FIT")
-    do_both([0, 0, 0, 0, 0, 0, 0, 2, 1, -1, math.pi],
-            [x * 1e-5 for x in range(N)], "minrel")
+    do_both(
+        [0, 0, 0, 0, 0, 0, 0, 2, 1, -1, math.pi],
+        [x * 1e-5 for x in range(N)],
+        "minrel",
+    )
+
 
 go()
 

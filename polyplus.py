@@ -1,4 +1,5 @@
-""" integrals and gaussian quadrature add-ons for polyfit.py
+"""
+integrals and gaussian quadrature add-ons for polyfit.py
 """
 
 from __future__ import print_function as _
@@ -20,6 +21,7 @@ from polyfit import (
 )
 
 __all__ = ["PolyplusIntegrator", "PolyplusQuadrature"]
+
 
 ## {{{ integration
 class PolyplusIntegrator(PolyfitBase):
@@ -163,10 +165,13 @@ class PolyplusQuadrature(PolyfitBase):
         func() is a poly of degree < 2D. func is assumed to take
         and return a float.
         """
-        f = lambda x: func(to_float(x))
-        return to_float(self.qddp(f, deg))
 
-    def qddp(self, func, deg):
+        def f(x):
+            return func(to_float(x))
+
+        return to_float(self.ddpquad(f, deg))
+
+    def ddpquad(self, func, deg):
         r"""
         compute \sum_{i=1}^N w_i func(x_i) using the quadrature
         scheme \sum_{i=0}^{deg} H_i func(z_i). this is exact if
@@ -215,7 +220,10 @@ class PolyplusQuadrature(PolyfitBase):
         """
         ranges = [self.x0] + self.roots(k - 1) + [self.x1]
         ret = []
-        func = lambda x: self._phi_k(x, k)
+
+        def func(x):
+            return self._phi_k(x, k)
+
         for i in range(len(ranges) - 1):
             a = ranges[i]
             fa = func(a)

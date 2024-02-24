@@ -26,37 +26,41 @@ divided by (2D)!
 
 from __future__ import print_function as _
 
-## pylint: disable=invalid-name,bad-whitespace
+## pylint: disable=invalid-name,bad-whitespace,consider-using-f-string
 
 import time
 
 import testlib as tl
 
+
 def demo():
     "demo code"
     ## pylint: disable=too-many-locals
 
-    D    = 8
-    N    = 10000
-    sc   = 1. #/ N
-    xv   = [x * sc for x in range(N)]
-    wv   = [1. for _ in xv]
+    D = 8
+    N = 10000
+    sc = 1.0  # / N
+    xv = [x * sc for x in range(N)]
+    wv = [1.0 for _ in xv]
 
-    t0   = time.time()
+    t0 = time.time()
     plan = tl.p.PolyfitPlan(D, xv, wv)
     print("plan %.2e" % (time.time() - t0))
 
     def check(l, k):
         "check the slow vs gaussian quadrature results"
-        f = lambda x: tl.qx_to_the_k(x, k)
+
+        def f(x):
+            return tl.qx_to_the_k(x, k)
+
         ## compute the large sum
-        v = [ ]
+        v = []
         for w, x in zip(wv, xv):
-            tl.p.vappend(v, tl.p.mul(tl.p.to_quad(w), f(x)))
+            tl.p.vappend(v, tl.p.mul(tl.p.to_ddp(w), f(x)))
         exp = tl.p.vectorsum(v)
         ## do the quadrature
-        obs = quad.qquad(f, l)
-        ## compute difference and rel error in quad prec
+        obs = quad.ddpquad(f, l)
+        ## compute difference and rel error in DDP
         dif = tl.p.sub(obs, exp)
         rel = tl.p.div(dif, exp)
         ## then dumb everything down to double for printing
@@ -71,7 +75,7 @@ def demo():
     print("quad %.2e" % (time.time() - t0))
 
     ## quick serialization test
-    ser  = quad.to_data()
+    ser = quad.to_data()
     assert isinstance(ser, dict)
     quad = tl.q.PolyplusQuadrature.from_data(ser)
 
@@ -83,6 +87,7 @@ def demo():
             ## loop over x^k and show whether or not they agree
             check(l, k)
         print()
+
 
 if __name__ == "__main__":
     demo()

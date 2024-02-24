@@ -7,7 +7,6 @@ from __future__ import print_function as _
 
 ## pylint: disable=invalid-name,bad-whitespace
 ## pylint: disable=useless-object-inheritance
-## pylint: disable=unnecessary-comprehension
 
 import math
 

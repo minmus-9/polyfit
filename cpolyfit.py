@@ -16,6 +16,8 @@ import ctypes
 import os
 
 __all__ = ["PolyfitPlan", "PolyfitFit", "PolyfitEvaluator"]
+
+
 ## }}}
 ## {{{ util funcs
 def isarray(a, minelts=None, maxelts=None):

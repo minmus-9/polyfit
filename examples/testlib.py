@@ -53,7 +53,7 @@ def ddpeval(x, cofs):
 
 def ddpevald(x, cofs):
     "evaluate the model poly in DDP, return float"
-    return p.to_float(qeval(x, cofs))
+    return p.to_float(ddpeval(x, cofs))
 
 def qx_to_the_k(x, k):
     "compute x**k in DDP"

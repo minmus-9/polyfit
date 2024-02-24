@@ -1,4 +1,4 @@
-"numpy fit using quad-precision setup"
+"numpy fit using DDP setup"
 
 from __future__ import print_function as _
 
@@ -11,18 +11,18 @@ import scipy.linalg as la
 
 sys.path.insert(0, "..")
 from polyfit import (   ## pylint: disable=wrong-import-position
-    mul, vectorsum, vappend, to_quad, to_float
+    mul, vectorsum, vappend, to_ddp, to_float
 )
 
 def chofit(xv, yv, wv, D):
-    "cholesky numpy fit, quad-precision setup"
+    "cholesky numpy fit, DDP setup"
     ## pylint: disable=too-many-locals
-    xv = [to_quad(x) for x in xv]
-    yv = [to_quad(y) for y in yv]
-    wv = [to_quad(w) for w in wv]
+    xv = [to_ddp(x) for x in xv]
+    yv = [to_ddp(y) for y in yv]
+    wv = [to_ddp(w) for w in wv]
     xa = wv[:]          ## accumulator
-    mx = [ ]            ## quad-prec moments
-    r  = [ ]            ## quad-prec rhs in Ac=r
+    mx = [ ]            ## DDP moments
+    r  = [ ]            ## DDP rhs in Ac=r
     for i in range((D + 1) * 2):
         if i <= D:
             ## compute rhs
@@ -48,7 +48,7 @@ def chofit(xv, yv, wv, D):
     info = la.cho_factor(A)
     cofs = la.cho_solve(info, b)
     ## get 'em into std order for horner's method
-    cofs = [to_quad(c) for c in cofs]
+    cofs = [to_ddp(c) for c in cofs]
     cofs.reverse()
     return cofs
 
