@@ -1,5 +1,6 @@
 /****************************************************************
- * polyfit.c - quad-precision mantissa orthogonal polynomial least squares
+ * polyfit.c - double-double precision mantissa orthogonal
+ *             polynomial least squares
  *
  * there are no comments in this code. see the python code
  * for the commented reference implementation. this code
@@ -25,9 +26,9 @@
 #define MAX(x,y) (((x) > (y)) ? (x) : (y))
 
 /* {{{ definitions */
-typedef struct Quad {
+typedef struct DD {
     double x, xx;
-} Quad_t;
+} DD_t;
 
 #define PLAN_MAGIC 0x504c414e   /* "PLAN" */
 
@@ -35,16 +36,16 @@ typedef struct plan {
     uint32_t magic;     /* PLAN_MAGIC */
     int      D;         /* max fit degree */
     int      N;         /* data point count */
-    Quad_t  *b;         /* maxdeg + 1 */
-    Quad_t  *c;         /* maxdeg + 2 */
-    Quad_t  *g;         /* maxdeg + 2 */
-    Quad_t  *xv;        /* npoints */
-    Quad_t  *wv;        /* npoints */
+    DD_t    *b;         /* maxdeg + 1 */
+    DD_t    *c;         /* maxdeg + 2 */
+    DD_t    *g;         /* maxdeg + 2 */
+    DD_t    *xv;        /* npoints */
+    DD_t    *wv;        /* npoints */
 } plan_t;
 
 typedef struct plan_scratch {
-    Quad_t *phi_k;      /* npoints */
-    Quad_t *phi_km1;    /* npoints */
+    DD_t   *phi_k;      /* npoints */
+    DD_t   *phi_km1;    /* npoints */
     double *b_vec;      /* 2 * npoints */
     double *g_vec;      /* 2 * npoints */
 } plan_scratch_t;
@@ -54,16 +55,16 @@ typedef struct plan_scratch {
 typedef struct fit {
     uint32_t      magic;     /* FIT_MAGIC */
     const plan_t *plan;
-    Quad_t       *a;         /* maxdeg + 1 */
+    DD_t         *a;         /* maxdeg + 1 */
     double       *rms_errs;  /* maxdeg + 1 */
     double       *resids;    /* npoints */
 } fit_t;
 
 typedef struct fit_scratch {
-    Quad_t  *phi_k;     /* npoints */
-    Quad_t  *phi_km1;   /* npoints */
+    DD_t    *phi_k;     /* npoints */
+    DD_t    *phi_km1;   /* npoints */
 #define e_vec a_vec
-    Quad_t  *rv;        /* npoints */
+    DD_t    *rv;        /* npoints */
     double  *a_vec;     /* 2 * npoints */
 } fit_scratch_t;
 
@@ -73,16 +74,16 @@ typedef struct eval {
     uint32_t     magic;     /* EVAL_MAGIC */
     const fit_t *fit;
     /* scratch, don't allocate for each call */
-    Quad_t      *z_j;       /* maxdeg + 3 */
-    Quad_t      *z_jm1;     /* maxdeg + 3 */
+    DD_t        *z_j;       /* maxdeg + 3 */
+    DD_t        *z_jm1;     /* maxdeg + 3 */
     double      *coefs;     /* maxdeg + 1 */
 } eval_t;
 /* }}} */
-/* {{{  quad-precision functions from ogita and dekker */
+/* {{{  double-double precision functions from ogita and dekker */
 /**********************************************************************/
-static INLINE Quad_t twosum(const double a, const double b) {
+static INLINE DD_t twosum(const double a, const double b) {
     double x, y, z;
-    Quad_t q;
+    DD_t   q;
 
     x = a + b;
     z = x - a;
@@ -93,9 +94,9 @@ static INLINE Quad_t twosum(const double a, const double b) {
     return q;
 }
 
-static INLINE Quad_t twodiff(const double a, const double b) {
+static INLINE DD_t twodiff(const double a, const double b) {
     double x, y, z;
-    Quad_t q;
+    DD_t   q;
 
     x = a - b;
     z = x - a;
@@ -108,9 +109,9 @@ static INLINE Quad_t twodiff(const double a, const double b) {
 
 #define FACTOR ((double) (1 + (1 << 27)))
 
-static INLINE Quad_t split(const double a) {
+static INLINE DD_t split(const double a) {
     double c, x, y;
-    Quad_t q;
+    DD_t   q;
 
     c = FACTOR * a;
     x = c - (c - a);
@@ -121,9 +122,9 @@ static INLINE Quad_t split(const double a) {
     return q;
 }
 
-static INLINE Quad_t twoproduct(const double a, const double b) {
+static INLINE DD_t twoproduct(const double a, const double b) {
     double x, y;
-    Quad_t aa, bb;
+    DD_t   aa, bb;
 
     x  = a * b;
     aa = split(a);
@@ -133,9 +134,9 @@ static INLINE Quad_t twoproduct(const double a, const double b) {
     return twosum(x, y);
 }
 
-static INLINE Quad_t sum2s(const double * const p, const int np) {
+static INLINE DD_t sum2s(const double * const p, const int np) {
     double sigma;
-    Quad_t q;
+    DD_t   q;
     int    i;
 
     if (!np) {
@@ -154,8 +155,8 @@ static INLINE Quad_t sum2s(const double * const p, const int np) {
 }
 
 static INLINE void vsum(double * const p, const int np) {
-    Quad_t q;
-    int    i, im1 = 0;
+    DD_t q;
+    int  i, im1 = 0;
 
     for (i = 1; i < np; i++) {
         q      = twosum(p[i], p[im1]);
@@ -175,14 +176,14 @@ static INLINE void sumkcore(
     }
 }
 
-static INLINE Quad_t sumk(
+static INLINE DD_t sumk(
     double * const p, const int np, const int K
 ) {
     sumkcore(p, np, K);
     return sum2s(p, np);
 }
 
-static INLINE Quad_t vectorsum(double * const p, const int np) {
+static INLINE DD_t vectorsum(double * const p, const int np) {
     return sumk(p, np, 3);
 }
 /* }}} */
@@ -190,8 +191,8 @@ static INLINE Quad_t vectorsum(double * const p, const int np) {
 /**********************************************************************/
 static INLINE void vappend(
     double * const vec,
-    int * const vecptr,
-    const Quad_t src
+    int * const    vecptr,
+    const DD_t     src
 ) {
     int v = *vecptr;
 
@@ -200,63 +201,63 @@ static INLINE void vappend(
     *vecptr  = v;
 }
 
-static INLINE Quad_t zero() {
-    Quad_t q = { 0, 0 };
+static INLINE DD_t zero() {
+    DD_t q = { 0, 0 };
 
     return q;
 }
 
-static INLINE Quad_t one() {
-    Quad_t q = { 1, 0 };
+static INLINE DD_t one() {
+    DD_t q = { 1, 0 };
 
     return q;
 }
 
-static INLINE Quad_t to_quad(const double x) {
-    Quad_t q = { 0, 0 };
+static INLINE DD_t to_dd(const double x) {
+    DD_t q = { 0, 0 };
     
     q.x = x;
     return q;
 }
 
-static INLINE double to_double(const Quad_t q) {
+static INLINE double to_double(const DD_t q) {
     return q.x;
 }
 /* }}} */
-/* {{{ quad-precision arithmetic */
+/* {{{ double-double precision arithmetic */
 /**********************************************************************/
-static INLINE Quad_t add(const Quad_t x, const Quad_t y) {
-    Quad_t z = twosum(x.x, y.x);
+static INLINE DD_t add(const DD_t x, const DD_t y) {
+    DD_t z = twosum(x.x, y.x);
 
     return twosum(z.x, z.xx + x.xx + y.xx);
 }
 
-static INLINE Quad_t sub(const Quad_t x, const Quad_t y) {
-    Quad_t z = twodiff(x.x, y.x);
+static INLINE DD_t sub(const DD_t x, const DD_t y) {
+    DD_t z = twodiff(x.x, y.x);
 
     return twosum(z.x, z.xx + x.xx - y.xx);
 }
 
-static INLINE Quad_t mul(const Quad_t x, const Quad_t y) {
-    Quad_t z = twoproduct(x.x, y.x);
+static INLINE DD_t mul(const DD_t x, const DD_t y) {
+    DD_t z = twoproduct(x.x, y.x);
 
     z.xx += x.xx * y.x + x.x * y.xx;
     return twosum(z.x, z.xx);
 }
 
-static INLINE Quad_t div_(const Quad_t x, const Quad_t y) {
+static INLINE DD_t div_(const DD_t x, const DD_t y) {
     double c = x.x / y.x;
     double cc;
-    Quad_t u = twoproduct(c, y.x);
+    DD_t   u = twoproduct(c, y.x);
     
     cc = (x.x - u.x - u.xx + x.xx - c * y.xx) / y.x;
 
     return twosum(c, cc);
 }
 
-static INLINE Quad_t sqrt_(const Quad_t x) {
+static INLINE DD_t sqrt_(const DD_t x) {
     double c, cc;
-    Quad_t u;
+    DD_t   u;
 
     if (!(x.x || x.xx)) return zero();
     c  = sqrt(x.x);
@@ -275,7 +276,7 @@ static INLINE plan_t *alloc_plan(const int maxdeg, const int npoints) {
     plan->D     = maxdeg;
     plan->N     = npoints;
 #define N_PLAN_DATA (npoints * 2 + maxdeg * 3 + 5)
-    if ((plan->b = malloc(N_PLAN_DATA * sizeof(Quad_t))) == NULL) {
+    if ((plan->b = malloc(N_PLAN_DATA * sizeof(DD_t))) == NULL) {
         polyfit_free(plan);
         return NULL;
     }
@@ -305,7 +306,7 @@ static INLINE plan_scratch_t *alloc_plan_scratch(
 
     if (scr == NULL)
         return NULL;
-    if ((scr->phi_k = malloc(2 * npoints * sizeof(Quad_t))) == NULL)
+    if ((scr->phi_k = malloc(2 * npoints * sizeof(DD_t))) == NULL)
         goto bad;
     if ((scr->b_vec = malloc(4 * npoints * sizeof(double))) == NULL)
         goto bad;
@@ -334,7 +335,7 @@ static INLINE fit_t *alloc_fit(const plan_t * const plan) {
     fit->magic = FIT_MAGIC;
     fit->plan  = plan;
 #define N_FIT_A (plan->D + 1)
-    if ((fit->a = malloc(N_FIT_A * sizeof(Quad_t))) == NULL)
+    if ((fit->a = malloc(N_FIT_A * sizeof(DD_t))) == NULL)
         goto bad;
 #define N_FIT_DBL (plan->N + plan->D + 1)
     if ((fit->rms_errs = malloc(N_FIT_DBL * sizeof(double))) == NULL)
@@ -363,7 +364,7 @@ static INLINE fit_scratch_t *alloc_fit_scratch(fit_t *fit) {
 
     if (scr == NULL)
         return NULL;
-    if ((scr->phi_k = malloc(3 * npoints * sizeof(Quad_t))) == NULL)
+    if ((scr->phi_k = malloc(3 * npoints * sizeof(DD_t))) == NULL)
         goto bad;
     if ((scr->a_vec = malloc(2 * npoints * sizeof(double))) == NULL)
         goto bad;
@@ -395,7 +396,7 @@ static INLINE eval_t *alloc_eval(const fit_t * const fit) {
     ev->magic = EVAL_MAGIC;
     ev->fit   = fit;
 #define N_ZJ (3 * D + 7)
-    if ((ev->z_j = malloc(N_ZJ * sizeof(Quad_t))) == NULL)
+    if ((ev->z_j = malloc(N_ZJ * sizeof(DD_t))) == NULL)
         goto bad;
     if ((ev->coefs = malloc((D + 1) * sizeof(double))) == NULL)
         goto bad;
@@ -448,8 +449,8 @@ void *polyfit_plan(
     plan_scratch_t *w;
 
     int     i, k, bptr, gptr, N = npoints, D = maxdeg;
-    Quad_t  b_k, c_k, g_k;
-    Quad_t *xv, *wv, *phi_k, *phi_km1, *b, *c, *g;
+    DD_t    b_k, c_k, g_k;
+    DD_t   *xv, *wv, *phi_k, *phi_km1, *b, *c, *g;
     double *b_vec, *g_vec;
 
     if ((plan = alloc_plan(maxdeg, npoints)) == NULL)
@@ -469,16 +470,16 @@ void *polyfit_plan(
     g_vec   = w->g_vec;
 
     for (i = 0; i < N; i++) {
-        xv[i]      = to_quad(xv_[i]);
-        wv[i]      = to_quad(wv_[i]);
+        xv[i]      = to_dd(xv_[i]);
+        wv[i]      = to_dd(wv_[i]);
         phi_k[i]   = one();
         phi_km1[i] = zero();
     }
     for (k = 0; k <= D; k++) {
         bptr = gptr = 0;
         for (i = 0; i < N; i++) {
-            Quad_t s = mul(wv[i], phi_k[i]);
-            Quad_t t = mul(s, phi_k[i]);
+            DD_t s = mul(wv[i], phi_k[i]);
+            DD_t t = mul(s, phi_k[i]);
 
             vappend(b_vec, &bptr, mul(t, xv[i]));
             vappend(g_vec, &gptr, t);
@@ -495,7 +496,7 @@ void *polyfit_plan(
             continue;
 
         for (i = 0; i < N; i++) {
-            Quad_t phi_kp1 = sub(
+            DD_t phi_kp1 = sub(
                 mul(sub(xv[i], b_k), phi_k[i]), mul(c_k, phi_km1[i])
             );
 
@@ -519,8 +520,8 @@ void *polyfit_fit(
 
     int     i, k, aptr, N, D;
 #define eptr aptr
-    Quad_t  a_k;
-    Quad_t *rv, *xv, *wv, *phi_k, *phi_km1, *a, *b, *c, *g;
+    DD_t    a_k;
+    DD_t   *rv, *xv, *wv, *phi_k, *phi_km1, *a, *b, *c, *g;
     double *a_vec;
 #define e_vec a_vec
 
@@ -548,14 +549,14 @@ void *polyfit_fit(
     g       = plan->g;
 
     for (i = 0; i < N; i++) {
-        rv[i]      = to_quad(yv[i]);
+        rv[i]      = to_dd(yv[i]);
         phi_k[i]   = one();
         phi_km1[i] = zero();
     }
     for (k = 0; k <= D; k++) {
         aptr = 0;
         for (i = 0; i < N; i++) {
-            Quad_t s = mul(wv[i], phi_k[i]);
+            DD_t s = mul(wv[i], phi_k[i]);
 
             vappend(a_vec, &aptr, mul(s, rv[i]));
         }
@@ -569,7 +570,7 @@ void *polyfit_fit(
         }
         fit->rms_errs[k] = sqrt(
             to_double(
-                div_(vectorsum(e_vec, eptr), to_quad(N))
+                div_(vectorsum(e_vec, eptr), to_dd(N))
             )
         );
 
@@ -577,7 +578,7 @@ void *polyfit_fit(
             continue;
 
         for (i = 0; i < N; i++) {
-            Quad_t phi_kp1 = sub(
+            DD_t phi_kp1 = sub(
                 mul(sub(xv[i], b[k]), phi_k[i]), mul(c[k], phi_km1[i])
             );
 
@@ -615,10 +616,10 @@ int polyfit_eval(
     const int nderiv
 ) {
     eval_t *ev = evaluator;
-    Quad_t  x = to_quad(x_), fac = one(), val;
-    Quad_t *b, *c, *z_j, *z_jm1;
-    int     i, j, k, D, deriv_ptr = 0;
-    int     d = degree, n = nderiv;
+    DD_t  x = to_dd(x_), fac = one(), val;
+    DD_t *b, *c, *z_j, *z_jm1;
+    int   i, j, k, D, deriv_ptr = 0;
+    int   d = degree, n = nderiv;
 
     if ((ev == NULL) || (ev->magic != EVAL_MAGIC)) {
         errno = EINVAL;
@@ -646,7 +647,7 @@ int polyfit_eval(
 
     for (j = 0; j <= MIN(d, n); j++) {
         if (j > 1) {
-            fac = mul(fac, to_quad(j));
+            fac = mul(fac, to_dd(j));
         }
         for (k = d; k >= j; k--) {
             int t = k - j;

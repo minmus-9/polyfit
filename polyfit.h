@@ -1,5 +1,6 @@
 /***********************************************************************
- * polyfit.h - quad-precision mantissa orthogonal polynomial least squares
+ * polyfit.h - double-double precision mantissa orthogonal polynomial
+ *             least squares
  */
 
 #ifndef polyfit_h__
